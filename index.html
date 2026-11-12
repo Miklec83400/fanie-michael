@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fanie & Michaël – Notre calendrier</title>
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--rose:#ff8fb1;--rose2:#ffd3e0;--lav:#b9a7f5;--lav2:#e6defc;--ink:#5a3550;--bg:#fff3f7}
+*{box-sizing:border-box;margin:0}
+body{font-family:'Quicksand',system-ui,sans-serif;color:var(--ink);background:radial-gradient(circle at 10% 0,#ffe3ee,transparent 45%),radial-gradient(circle at 100% 100%,#eae3ff,transparent 45%),var(--bg);min-height:100vh;padding:14px 18px 24px;overflow-x:hidden}
+h1{font-family:'Pacifico',cursive;font-weight:400;font-size:clamp(26px,4vw,40px);color:#e0457b;text-align:center;line-height:1.1}
+.sub{text-align:center;font-size:14px;opacity:.75;margin:2px 0 12px}
+.wrap{display:grid;grid-template-columns:290px 1fr;gap:16px;max-width:1280px;margin:0 auto}
+.card{background:#fff;border-radius:22px;box-shadow:0 6px 22px #e0457b22;padding:14px}
+.left{display:flex;flex-direction:column;gap:12px}
+.pic{width:100%;aspect-ratio:1.25;border-radius:18px;background:linear-gradient(160deg,#ffe3ee,#eae3ff);overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative}
+.pic img{width:100%;height:100%;object-fit:cover}
+.pic svg{width:100%;height:100%}
+.mini{display:flex;gap:6px;margin-top:8px}
+button{font:inherit;cursor:pointer;border:0}
+.btn{background:var(--rose2);color:#b3265a;border-radius:20px;padding:6px 12px;font-weight:700;font-size:13px}
+.btn:hover{background:var(--rose);color:#fff}
+.status{border-radius:16px;padding:12px;font-weight:600;font-size:15px;line-height:1.35;text-align:center}
+.status.here{background:var(--rose2)}.status.away{background:var(--lav2)}
+.status b{display:block;font-size:18px;margin-bottom:2px}
+.legend{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600}
+.legend i{display:inline-block;width:18px;height:18px;border-radius:6px;vertical-align:-4px;margin-right:6px}
+.next{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:4px}
+.next div{display:flex;justify-content:space-between;gap:6px;background:#fff6fa;border-radius:10px;padding:5px 9px}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.cal-head h2{font-family:'Pacifico',cursive;font-weight:400;font-size:24px;color:#e0457b;text-transform:capitalize}
+.nav{background:var(--rose2);color:#b3265a;border-radius:50%;width:36px;height:36px;font-size:18px;font-weight:700}
+.nav:hover{background:var(--rose);color:#fff}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.dow{text-align:center;font-weight:700;font-size:12px;opacity:.7;padding-bottom:2px}
+.day{min-height:78px;border-radius:12px;padding:4px 5px;text-align:left;position:relative;overflow:hidden;color:var(--ink);display:flex;flex-direction:column;gap:2px;border:2px solid transparent}
+.day:hover{border-color:#e0457b}
+.day.out{opacity:.35}
+.day.today{border-color:#e0457b;box-shadow:0 0 0 2px #fff inset}
+.day .n{font-weight:700;font-size:13px}
+.day .sw{position:absolute;top:3px;right:5px;font-size:12px}
+.day .ev{font-size:11px;font-weight:600;background:#ffffffcc;border-radius:6px;padding:0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.year{margin-top:12px}
+.year h3{font-size:14px;margin-bottom:6px}
+.strip{display:flex;flex-wrap:wrap;gap:4px}
+.wk{width:36px;height:40px;border-radius:10px;font-size:11px;font-weight:700;line-height:1.1;padding-top:3px;color:var(--ink)}
+.wk span{display:block;font-size:14px}
+.wk.on{outline:2px solid #e0457b}
+.wk.cur{outline:3px solid #e0457b}
+.here-bg{background:var(--rose2)}
+.away-bg{background:var(--lav2)}
+.modal{position:fixed;inset:0;background:#5a355088;display:none;align-items:center;justify-content:center;z-index:20;padding:16px}
+.modal.open{display:flex}
+.box{background:#fff;border-radius:22px;padding:18px;width:min(400px,100%);box-shadow:0 10px 40px #0004}
+.box h4{font-family:'Pacifico',cursive;font-weight:400;font-size:20px;color:#e0457b;text-transform:capitalize}
+.box .st{font-size:13px;font-weight:600;margin:4px 0 10px}
+.box ul{list-style:none;padding:0;display:flex;flex-direction:column;gap:5px;margin-bottom:10px;max-height:160px;overflow:auto}
+.box li{display:flex;justify-content:space-between;align-items:center;background:#fff6fa;border-radius:10px;padding:6px 10px;font-weight:600;font-size:14px}
+.box li button{background:none;color:#b3265a;font-size:16px}
+.row{display:flex;gap:6px}
+input[type=text]{flex:1;font:inherit;border:2px solid var(--rose2);border-radius:12px;padding:7px 10px;min-width:0}
+.emo{display:flex;gap:4px;margin:8px 0;flex-wrap:wrap}
+.emo button{background:#fff6fa;border-radius:10px;font-size:18px;padding:3px 7px}
+.emo button:hover{background:var(--rose2)}
+.float{position:fixed;bottom:-40px;font-size:22px;opacity:.7;pointer-events:none;animation:up linear infinite;z-index:1}
+@keyframes up{to{transform:translateY(-115vh) translateX(30px) rotate(20deg)}}
+@media(prefers-reduced-motion:reduce){.float{display:none}}
+@media(max-width:820px){
+ .wrap{grid-template-columns:1fr}
+ .left{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+ .left .pic-card{grid-column:1/-1}
+ .day{min-height:54px;padding:2px 3px}.day .ev{font-size:0;padding:0;width:6px;height:6px;border-radius:50%;background:#e0457b;display:inline-block}
+ .wk{width:30px;height:36px}
+ body{padding:10px}
+}
+</style>
+</head>
+<body>
+<h1>Fanie & Michaël 💕</h1>
+<p class="sub">Notre petit calendrier d'amour — une semaine sur deux, du lundi 18 h au lundi 18 h 🦋</p>
+
+<div class="wrap">
+ <div class="left">
+  <div class="card pic-card">
+   <div class="pic" id="pic"></div>
+   <div class="mini">
+    <button class="btn" id="addPhoto">📷 Notre photo</button>
+    <button class="btn" id="rmPhoto" style="display:none">✖</button>
+    <input type="file" id="file" accept="image/*" hidden>
+   </div>
+  </div>
+  <div class="card">
+   <div class="status" id="status"></div>
+  </div>
+  <div class="card" style="display:flex;flex-direction:column;gap:10px">
+   <div class="legend">
+    <div><i class="here-bg" style="background:var(--rose)"></i>💖 Fanie est chez Michaël</div>
+    <div><i style="background:var(--lav)"></i>🏡 Fanie est chez elle</div>
+   </div>
+   <div class="next" id="next"></div>
+  </div>
+ </div>
+
+ <div>
+  <div class="card">
+   <div class="cal-head">
+    <button class="nav" id="prev" aria-label="Mois précédent">‹</button>
+    <h2 id="title"></h2>
+    <button class="nav" id="nextm" aria-label="Mois suivant">›</button>
+   </div>
+   <div class="grid" id="grid"></div>
+  </div>
+  <div class="card year">
+   <h3 id="ytitle"></h3>
+   <div class="strip" id="strip"></div>
+  </div>
+ </div>
+</div>
+
+<div class="modal" id="modal">
+ <div class="box">
+  <h4 id="mdate"></h4>
+  <div class="st" id="mst"></div>
+  <ul id="mlist"></ul>
+  <div class="emo" id="emo"></div>
+  <div class="row">
+   <input type="text" id="mtxt" placeholder="Un petit rendez-vous, un projet…" maxlength="60">
+   <button class="btn" id="madd">Ajouter</button>
+  </div>
+  <div style="text-align:right;margin-top:10px"><button class="btn" id="mclose">Fermer</button></div>
+ </div>
+</div>
+
+<script>
+const DAY=86400000, REF=Date.UTC(2026,10,16)/DAY; // lundi 16 nov 2026 : Fanie arrive chez Michaël à 18 h
+const MOIS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+const JOURS=['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+const $=id=>document.getElementById(id);
+const mod=(a,b)=>((a%b)+b)%b;
+const dn=(y,m,d)=>Math.round(Date.UTC(y,m,d)/DAY);
+const toDate=n=>new Date(n*DAY);
+const dow=n=>mod(toDate(n).getUTCDay()+6,7);
+const weekK=n=>(n-dow(n)-REF)/7;
+const hereWeek=k=>mod(k,2)===0;
+const key=n=>{const d=toDate(n);return d.getUTCFullYear()+'-'+(d.getUTCMonth()+1)+'-'+d.getUTCDate()};
+const fmt=n=>{const d=toDate(n);return JOURS[dow(n)]+' '+d.getUTCDate()+' '+MOIS[d.getUTCMonth()]};
+// état pendant la journée n : [avant 18h, après 18h]
+function dayState(n){const k=weekK(n);const cur=hereWeek(k);return dow(n)===0?[hereWeek(k-1),cur]:[cur,cur]}
+
+let store={};try{store=JSON.parse(localStorage.getItem('fm-events')||'{}')}catch(e){}
+const save=()=>{try{localStorage.setItem('fm-events',JSON.stringify(store))}catch(e){}};
+
+const now=new Date();
+const todayN=dn(now.getFullYear(),now.getMonth(),now.getDate());
+let vy=now.getFullYear(),vm=now.getMonth();
+
+/* Illustration */
+const COUPLE=`<svg viewBox="0 0 250 200" xmlns="http://www.w3.org/2000/svg">
+<defs><radialGradient id="g" cx=".5" cy=".4"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#ffd3e0"/></radialGradient></defs>
+<circle cx="125" cy="100" r="92" fill="url(#g)"/>
+<g fill="#ff6f9f"><path d="M125 40c-8-14-28-6-22 10 4 9 22 20 22 20s18-11 22-20c6-16-14-24-22-10z" transform="translate(0 -6) scale(1)"/></g>
+<!-- Fanie -->
+<g><path d="M70 120q-6 50 4 62h40q10-12 4-62z" fill="#ff8fb1"/>
+<circle cx="94" cy="98" r="19" fill="#ffe0c8"/>
+<path d="M74 98q-4-26 20-26t20 26q-6-14-20-14t-20 14z" fill="#8a4b2b"/><path d="M74 96q-8 30 2 40q4-18 6-30z" fill="#8a4b2b"/><path d="M114 96q8 30-2 40q-4-18-6-30z" fill="#8a4b2b"/>
+<circle cx="88" cy="100" r="2" fill="#5a3550"/><circle cx="100" cy="100" r="2" fill="#5a3550"/>
+<path d="M89 107q5 4 10 0" stroke="#d6336c" stroke-width="2" fill="none" stroke-linecap="round"/>
+<circle cx="83" cy="106" r="3.5" fill="#ff9db8" opacity=".7"/><circle cx="105" cy="106" r="3.5" fill="#ff9db8" opacity=".7"/></g>
+<!-- Michaël -->
+<g><path d="M136 124q-4 48 2 58h42q6-10 2-58z" fill="#7fa7ff"/>
+<circle cx="160" cy="100" r="19" fill="#ffe0c8"/>
+<path d="M141 98q0-24 19-24t19 24q-4-10-19-10t-19 10z" fill="#4b3a33"/>
+<circle cx="154" cy="102" r="2" fill="#5a3550"/><circle cx="166" cy="102" r="2" fill="#5a3550"/>
+<path d="M155 109q5 4 10 0" stroke="#d6336c" stroke-width="2" fill="none" stroke-linecap="round"/>
+<circle cx="149" cy="108" r="3.5" fill="#ff9db8" opacity=".7"/><circle cx="171" cy="108" r="3.5" fill="#ff9db8" opacity=".7"/></g>
+<!-- mains -->
+<circle cx="126" cy="150" r="7" fill="#ffe0c8"/>
+<path d="M118 150q-10-4-16 6M134 150q8-2 12 8" stroke="#ffe0c8" stroke-width="7" fill="none" stroke-linecap="round" opacity="0"/>
+<text x="40" y="45" font-size="22">🦋</text><text x="195" y="60" font-size="20">🦋</text>
+<text x="50" y="170" font-size="16">💕</text><text x="195" y="165" font-size="16">💕</text><text x="112" y="28" font-size="20">💖</text>
+</svg>`;
+function renderPic(){
+  let img=null;try{img=localStorage.getItem('fm-photo')}catch(e){}
+  $('pic').innerHTML=img?`<img alt="Fanie et Michaël" src="${img}">`:COUPLE;
+  $('rmPhoto').style.display=img?'':'none';
+}
+$('addPhoto').onclick=()=>$('file').click();
+$('rmPhoto').onclick=()=>{try{localStorage.removeItem('fm-photo')}catch(e){}renderPic()};
+$('file').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{
+    const W=500,H=400,c=document.createElement('canvas');c.width=W;c.height=H;
+    const s=Math.max(W/im.width,H/im.height),w=im.width*s,h=im.height*s;
+    c.getContext('2d').drawImage(im,(W-w)/2,(H-h)/2,w,h);
+    const data=c.toDataURL('image/jpeg',.82);
+    try{localStorage.setItem('fm-photo',data)}catch(e){}
+    $('pic').innerHTML=`<img alt="Fanie et Michaël" src="${data}">`;$('rmPhoto').style.display='';
+  };im.src=r.result};r.readAsDataURL(f);
+};
+
+/* Statut */
+function renderStatus(){
+  const h=now.getHours()+now.getMinutes()/60;
+  const st=dayState(todayN);const here=h<18?st[0]:st[1];
+  // prochain changement : lundi 18h
+  let m=todayN-dow(todayN);if(m<todayN||(m===todayN&&h>=18))m+=7;
+  const diff=m-todayN;
+  const when=diff===0?"ce soir à 18 h":diff===1?"demain à 18 h":`${fmt(m)} à 18 h (dans ${diff} jours)`;
+  const el=$('status');el.className='status '+(here?'here':'away');
+  el.innerHTML=here?`<b>💖 Fanie est chez Michaël</b>Elle repart ${diff<=1?when:'le '+when}`:`<b>🏡 Fanie est chez elle</b>Elle arrive ${diff<=1?when:'le '+when} 💕`;
+  let out='';let mm=m;
+  for(let i=0;i<4;i++){const arrives=hereWeek(weekK(mm));
+    out+=`<div><span>${arrives?'💖 Arrive':'🏡 Repart'}</span><span>${toDate(mm).getUTCDate()} ${MOIS[toDate(mm).getUTCMonth()].slice(0,4)}${MOIS[toDate(mm).getUTCMonth()].length>4?'.':''}</span></div>`;mm+=7}
+  $('next').innerHTML='<div style="background:none;padding:0 0 2px;opacity:.7"><span>Prochains lundis 18 h</span></div>'+out;
+}
+
+/* Calendrier du mois */
+function renderCal(){
+  $('title').textContent=MOIS[vm]+' '+vy;
+  const first=dn(vy,vm,1),last=dn(vy,vm+1,0);
+  const start=first-dow(first),end=last+(6-dow(last));
+  let html=['L','M','M','J','V','S','D'].map(d=>`<div class="dow">${d}</div>`).join('');
+  for(let n=start;n<=end;n++){
+    const d=toDate(n),[a,b]=dayState(n);
+    const col=x=>x?'var(--rose)':'var(--lav)';
+    const light=x=>x?'#ffc2d6':'#d4c8fa';
+    let bg;
+    if(dow(n)===0&&a!==b)bg=`linear-gradient(90deg,${light(a)} 75%,${light(b)} 75%)`;else bg=light(b);
+    const evs=(store[key(n)]||[]);
+    const sw=(dow(n)===0&&a!==b)?(b?'💖':'🏡'):'';
+    html+=`<button class="day${d.getUTCMonth()!==vm?' out':''}${n===todayN?' today':''}" style="background:${bg}" data-n="${n}">
+      <span class="n">${d.getUTCDate()}</span><span class="sw">${sw}</span>
+      ${evs.slice(0,2).map(e=>`<span class="ev">${esc(e)}</span>`).join('')}</button>`;
+  }
+  $('grid').innerHTML=html;
+  $('grid').querySelectorAll('.day').forEach(b=>b.onclick=()=>openDay(+b.dataset.n));
+  renderStrip();
+}
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* Frise de l'année */
+function isoWeek(n){const d=toDate(n+3-dow(n));const y=d.getUTCFullYear();const j=Math.round((Date.UTC(y,d.getUTCMonth(),d.getUTCDate())-Date.UTC(y,0,4))/DAY);return 1+Math.floor((j+dow(dn(y,0,4)))/7)}
+function renderStrip(){
+  $('ytitle').textContent=`Toute l'année ${vy} — clique une semaine pour y aller 💕`;
+  let n=dn(vy,0,1);n-=dow(n);if(toDate(n).getUTCFullYear()<vy)n+=7;
+  let html='';
+  const curW=todayN-dow(todayN);
+  for(;toDate(n).getUTCFullYear()===vy;n+=7){
+    const here=hereWeek(weekK(n));
+    const d=toDate(n);
+    const inView=d.getUTCMonth()===vm;
+    html+=`<button class="wk ${here?'here-bg':'away-bg'}${inView?' on':''}${n===curW?' cur':''}" data-n="${n}" title="Semaine du ${fmt(n)}">${d.getUTCDate()}/${d.getUTCMonth()+1}<span>${here?'💖':'🏡'}</span></button>`;
+  }
+  $('strip').innerHTML=html;
+  $('strip').querySelectorAll('.wk').forEach(b=>b.onclick=()=>{const d=toDate(+b.dataset.n);vm=d.getUTCMonth();renderCal()});
+}
+$('prev').onclick=()=>{vm--;if(vm<0){vm=11;vy--}renderCal()};
+$('nextm').onclick=()=>{vm++;if(vm>11){vm=0;vy++}renderCal()};
+
+/* Fenêtre d'un jour */
+let curN=null;
+['🍽️','🎬','✈️','🎂','💌','🛒','🌹','🎉'].forEach(e=>{const b=document.createElement('button');b.textContent=e;b.onclick=()=>{$('mtxt').value=e+' '+$('mtxt').value.replace(/^\p{Extended_Pictographic}️?\s*/u,'');$('mtxt').focus()};$('emo').appendChild(b)});
+function openDay(n){
+  curN=n;$('mdate').textContent=fmt(n);
+  const [a,b]=dayState(n);
+  $('mst').textContent=dow(n)===0&&a!==b?(b?'💖 Fanie arrive chez Michaël à 18 h':'🏡 Fanie repart chez elle à 18 h'):(b?'💖 Fanie est chez Michaël':'🏡 Fanie est chez elle');
+  renderList();$('modal').classList.add('open');$('mtxt').value='';
+}
+function renderList(){
+  const l=store[key(curN)]||[];
+  $('mlist').innerHTML=l.length?l.map((e,i)=>`<li><span>${esc(e)}</span><button data-i="${i}" aria-label="Supprimer">✕</button></li>`).join(''):'<li style="opacity:.6">Rien de prévu pour l\'instant 💭</li>';
+  $('mlist').querySelectorAll('button').forEach(b=>b.onclick=()=>{l.splice(+b.dataset.i,1);if(!l.length)delete store[key(curN)];save();renderList();renderCal()});
+}
+function addEv(){const t=$('mtxt').value.trim();if(!t)return;(store[key(curN)]=store[key(curN)]||[]).push(t);save();$('mtxt').value='';renderList();renderCal()}
+$('madd').onclick=addEv;$('mtxt').onkeydown=e=>{if(e.key==='Enter')addEv()};
+$('mclose').onclick=()=>$('modal').classList.remove('open');
+$('modal').onclick=e=>{if(e.target===$('modal'))$('modal').classList.remove('open')};
+
+/* Petits cœurs et papillons */
+['💕','🦋','💖','🦋','💗','🦋','💞'].forEach((e,i)=>{const s=document.createElement('span');s.className='float';s.textContent=e;s.style.left=(8+i*13)+'%';s.style.animationDuration=(14+i*3)+'s';s.style.animationDelay=(-i*4)+'s';document.body.appendChild(s)});
+
+renderPic();renderStatus();renderCal();
+</script>
+</body>
+</html>
