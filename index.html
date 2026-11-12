@@ -78,7 +78,7 @@ input[type=text]{flex:1;font:inherit;border:2px solid var(--rose2);border-radius
 </head>
 <body>
 <h1>Fanie & Michaël 💕</h1>
-<p class="sub">Notre petit calendrier d'amour — une semaine sur deux, du lundi 18 h au lundi 18 h 🦋</p>
+<p class="sub">Notre petit calendrier d'amour — une semaine sur deux, du lundi 18 h au lundi 18 h 🦋 <span id="sync" style="display:block;font-size:12px;opacity:.7"></span></p>
 
 <div class="wrap">
  <div class="left">
@@ -132,6 +132,16 @@ input[type=text]{flex:1;font:inherit;border:2px solid var(--rose2);border-radius
  </div>
 </div>
 
+<div class="modal" id="codeModal">
+ <div class="box">
+  <h4>Bienvenue 💕</h4>
+  <div class="st" id="cmsg"></div>
+  <div class="emo" id="who"><button data-w="Fanie">💖 Je suis Fanie</button><button data-w="Michaël">💙 Je suis Michaël</button></div>
+  <div class="row"><input type="text" id="ccode" placeholder="Code secret" autocomplete="off"><button class="btn" id="cok">OK</button></div>
+ </div>
+</div>
+<style>#who button.sel{background:var(--rose);color:#fff}</style>
+
 <script>
 const DAY=86400000, REF=Date.UTC(2026,10,16)/DAY; // lundi 16 nov 2026 : Fanie arrive chez Michaël à 18 h
 const MOIS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
@@ -148,8 +158,38 @@ const fmt=n=>{const d=toDate(n);return JOURS[dow(n)]+' '+d.getUTCDate()+' '+MOIS
 // état pendant la journée n : [avant 18h, après 18h]
 function dayState(n){const k=weekK(n);const cur=hereWeek(k);return dow(n)===0?[hereWeek(k-1),cur]:[cur,cur]}
 
-let store={};try{store=JSON.parse(localStorage.getItem('fm-events')||'{}')}catch(e){}
-const save=()=>{try{localStorage.setItem('fm-events',JSON.stringify(store))}catch(e){}};
+/* Rendez-vous partagés (Supabase) */
+const SB='https://vshxudfhstondwcdpdxs.supabase.co/rest/v1/rpc/',SBK='sb_publishable_Xr_YRN1_gHMhbUbF2lHP1g_moCLsvQA';
+const lsGet=k=>{try{return localStorage.getItem(k)||''}catch(e){return ''}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+let code=lsGet('fm-code'),who=lsGet('fm-who'),store={};
+async function rpc(fn,args){
+  const r=await fetch(SB+fn,{method:'POST',headers:{apikey:SBK,'Content-Type':'application/json'},body:JSON.stringify(args)});
+  const t=await r.text();let j=null;try{j=t?JSON.parse(t):null}catch(e){}
+  if(!r.ok)throw new Error((j&&j.message)||String(r.status));
+  return j;
+}
+function setSync(ok){$('sync').textContent=ok?'🔄 rendez-vous partagés':'📴 hors ligne — réessaie plus tard'}
+async function load(){
+  if(!code){askCode();return}
+  try{
+    const rows=await rpc('cal_list',{p:code});store={};
+    rows.forEach(r=>{const [y,m,d]=r.jour.split('-').map(Number);const k=y+'-'+m+'-'+d;(store[k]=store[k]||[]).push({id:r.id,t:r.texte,a:r.auteur})});
+    setSync(true);renderCal();if($('modal').classList.contains('open'))renderList();
+  }catch(e){
+    if(/code/i.test(e.message)){code='';lsSet('fm-code','');askCode('Code incorrect, réessaie 💭')}else setSync(false);
+  }
+}
+function askCode(msg){
+  $('cmsg').textContent=msg||'Entre le code que Michaël a donné à Fanie 💌';
+  $('codeModal').classList.add('open');
+}
+document.querySelectorAll('#who button').forEach(b=>b.onclick=()=>{who=b.dataset.w;lsSet('fm-who',who);document.querySelectorAll('#who button').forEach(x=>x.classList.toggle('sel',x===b))});
+if(who)document.querySelectorAll('#who button').forEach(x=>x.classList.toggle('sel',x.dataset.w===who));
+$('cok').onclick=()=>{const v=$('ccode').value.trim();if(!v)return;code=v;lsSet('fm-code',v);if(!who){who='Fanie';lsSet('fm-who',who)}$('codeModal').classList.remove('open');load()};
+$('ccode').onkeydown=e=>{if(e.key==='Enter')$('cok').click()};
+setInterval(()=>{if(code&&!document.hidden)load()},30000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
 
 const now=new Date();
 const todayN=dn(now.getFullYear(),now.getMonth(),now.getDate());
@@ -231,7 +271,7 @@ function renderCal(){
     const sw=(dow(n)===0&&a!==b)?(b?'💖':'🏡'):'';
     html+=`<button class="day${d.getUTCMonth()!==vm?' out':''}${n===todayN?' today':''}" style="background:${bg}" data-n="${n}">
       <span class="n">${d.getUTCDate()}</span><span class="sw">${sw}</span>
-      ${evs.slice(0,2).map(e=>`<span class="ev">${esc(e)}</span>`).join('')}</button>`;
+      ${evs.slice(0,2).map(e=>`<span class="ev">${esc(e.t)}</span>`).join('')}</button>`;
   }
   $('grid').innerHTML=html;
   $('grid').querySelectorAll('.day').forEach(b=>b.onclick=()=>openDay(+b.dataset.n));
@@ -269,10 +309,14 @@ function openDay(n){
 }
 function renderList(){
   const l=store[key(curN)]||[];
-  $('mlist').innerHTML=l.length?l.map((e,i)=>`<li><span>${esc(e)}</span><button data-i="${i}" aria-label="Supprimer">✕</button></li>`).join(''):'<li style="opacity:.6">Rien de prévu pour l\'instant 💭</li>';
-  $('mlist').querySelectorAll('button').forEach(b=>b.onclick=()=>{l.splice(+b.dataset.i,1);if(!l.length)delete store[key(curN)];save();renderList();renderCal()});
+  $('mlist').innerHTML=l.length?l.map(e=>`<li><span>${esc(e.t)}${e.a?` <small style="opacity:.55">· ${esc(e.a)}</small>`:''}</span><button data-id="${e.id}" aria-label="Supprimer">✕</button></li>`).join(''):'<li style="opacity:.6">Rien de prévu pour l\'instant 💭</li>';
+  $('mlist').querySelectorAll('button').forEach(b=>b.onclick=async()=>{try{await rpc('cal_del',{p:code,i:+b.dataset.id});await load()}catch(e){setSync(false)}});
 }
-function addEv(){const t=$('mtxt').value.trim();if(!t)return;(store[key(curN)]=store[key(curN)]||[]).push(t);save();$('mtxt').value='';renderList();renderCal()}
+async function addEv(){
+  const t=$('mtxt').value.trim();if(!t)return;
+  const d=toDate(curN);const j=d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');
+  try{await rpc('cal_add',{p:code,j:j,t:t,a:who||null});$('mtxt').value='';await load()}catch(e){setSync(false)}
+}
 $('madd').onclick=addEv;$('mtxt').onkeydown=e=>{if(e.key==='Enter')addEv()};
 $('mclose').onclick=()=>$('modal').classList.remove('open');
 $('modal').onclick=e=>{if(e.target===$('modal'))$('modal').classList.remove('open')};
@@ -280,7 +324,7 @@ $('modal').onclick=e=>{if(e.target===$('modal'))$('modal').classList.remove('ope
 /* Petits cœurs et papillons */
 ['💕','🦋','💖','🦋','💗','🦋','💞'].forEach((e,i)=>{const s=document.createElement('span');s.className='float';s.textContent=e;s.style.left=(8+i*13)+'%';s.style.animationDuration=(14+i*3)+'s';s.style.animationDelay=(-i*4)+'s';document.body.appendChild(s)});
 
-renderPic();renderStatus();renderCal();
+renderPic();renderStatus();renderCal();load();
 </script>
 </body>
 </html>
