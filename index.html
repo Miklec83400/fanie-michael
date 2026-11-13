@@ -17,11 +17,11 @@
 body{font-family:'Quicksand',system-ui,sans-serif;color:var(--ink);background:radial-gradient(circle at 10% 0,#ffe3ee,transparent 45%),radial-gradient(circle at 100% 100%,#eae3ff,transparent 45%),var(--bg);min-height:100vh;padding:14px 18px 24px;overflow-x:hidden}
 h1{font-family:'Pacifico',cursive;font-weight:400;font-size:clamp(28px,4.5vw,44px);color:#e0457b;text-align:center;line-height:1.1}
 .sub{font-family:'Pacifico',cursive;display:flex;align-items:center;justify-content:center;gap:12px;font-size:clamp(15px,2.2vw,20px);color:#b3265a;margin:4px 0 12px}
-.sub .bf{font-size:1.4em;display:inline-block;animation:flap 2.4s ease-in-out infinite}
-.sub .bf:last-child{animation-delay:-1.2s;transform:scaleX(-1)}
-@keyframes flap{50%{transform:translateY(-4px) rotate(8deg)}}
-.sub .bf:last-child{animation-name:flap2}
-@keyframes flap2{0%,100%{transform:scaleX(-1)}50%{transform:scaleX(-1) translateY(-4px) rotate(8deg)}}
+.sub .bf{font-size:1.3em;display:inline-block;animation:beat 1.8s ease-in-out infinite}
+@keyframes beat{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
+.hd{display:flex;align-items:center;justify-content:center;gap:clamp(10px,3vw,30px);margin-bottom:10px}
+.ht{text-align:center}
+.av{width:clamp(66px,9vw,100px);height:clamp(66px,9vw,100px);border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 4px 14px #e0457b55;flex:none}
 #sync{font-size:12px;opacity:.8}
 .page{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
 .card{background:#fff;border-radius:22px;box-shadow:0 6px 22px #e0457b22;padding:14px}
@@ -121,8 +121,14 @@ textarea{width:100%;font:inherit;border:2px solid var(--rose2);border-radius:12p
 </style>
 </head>
 <body>
-<h1>Fanie & Michaël 💕</h1>
-<p class="sub"><span class="bf">🦋</span><span>Notre petit calendrier d'amour</span><span class="bf">🦋</span></p>
+<header class="hd">
+ <img class="av" src="photo1.jpg" alt="Fanie et Michaël">
+ <div class="ht">
+  <h1>Fanie & Michaël</h1>
+  <p class="sub"><span class="bf">💖</span><span>Notre petit calendrier d'amour</span><span class="bf">💖</span></p>
+ </div>
+ <img class="av" src="photo2.jpg" alt="Fanie et Michaël">
+</header>
 <div id="bar"><button class="link" id="me"></button><button class="link" id="bell" style="display:none">🔔 Me prévenir</button><span id="sync"></span></div>
 
 <div class="page">
