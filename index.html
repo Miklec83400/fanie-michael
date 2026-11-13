@@ -48,7 +48,7 @@ button{font:inherit;cursor:pointer;border:0}
 .btn{background:var(--rose2);color:#b3265a;border-radius:20px;padding:6px 12px;font-weight:700;font-size:13px}
 .btn:hover{background:var(--rose);color:#fff}
 .stcard{display:flex;align-items:center;justify-content:center;padding:18px 26px 18px 40px}
-.bubble{position:relative;width:100%;max-width:720px;border-radius:30px;padding:22px 28px;text-align:center;font-weight:700;line-height:1.35;font-size:clamp(18px,2.5vw,28px);box-shadow:0 4px 14px #e0457b22}
+.bubble{position:relative;width:100%;max-width:720px;border-radius:30px;padding:22px 28px;text-align:center;font-weight:700;line-height:1.35;font-size:clamp(17px,2.3vw,27px);box-shadow:0 4px 14px #e0457b22}
 .bubble.here{background:var(--rose2)}.bubble.away{background:var(--lav2)}
 .bubble::before{content:'';position:absolute;left:-16px;top:50%;margin-top:-14px;border:14px solid transparent;border-right-color:inherit;border-left:0}
 .bubble.here::before{border-right-color:var(--rose2)}.bubble.away::before{border-right-color:var(--lav2)}
@@ -363,13 +363,71 @@ function renderStatus(){
   let m=todayN-dow(todayN);if(m<todayN||(m===todayN&&h>=18))m+=7;
   const diff=m-todayN;
   const el=$('status');el.className='bubble '+(here?'here':'away');
-  if(here){
-    el.innerHTML=`Câlins à volonté ${diff===0?"jusqu'à ce soir":"jusqu'au "+fmt(m)} ! 🤗<small>Bisous, bisous 😘</small>`;
-  }else{
-    const when=diff===0?"ce soir":diff===1?`demain (${fmt(m)})`:`le ${fmt(m)}, dans ${diff} jours`;
-    el.innerHTML=`On se retrouve ${when} ! 🥰<small>Bisous, bisous 😘💋</small>`;
-  }
+  // une phrase d'amour différente chaque jour
+  el.textContent=PHRASES[mod(todayN,PHRASES.length)]+' 💖';
 }
+const PHRASES=[
+"Aimer, c'est choisir l'autre chaque matin, même quand les jours se ressemblent.",
+"Deux cœurs qui battent à distance finissent toujours par trouver le même rythme.",
+"Le temps passe, mais ce qui nous lie prend racine.",
+"Entre toi et moi, il n'y a pas de distance, seulement des détours.",
+"On ne possède pas l'amour, on le cultive, un jour après l'autre.",
+"Ton sourire est ma plus belle façon de commencer la journée.",
+"Aimer, c'est faire de la place à l'autre sans perdre la sienne.",
+"Chaque attente rend les retrouvailles plus douces.",
+"Le plus beau voyage, c'est celui qu'on fait à deux, même sans bouger.",
+"Un amour vrai ne demande pas d'être parfait, seulement d'être sincère.",
+"Ce qui compte, ce n'est pas le nombre de jours, c'est la façon dont on les partage.",
+"Les petits gestes d'aujourd'hui font les grands souvenirs de demain.",
+"Être ensemble, c'est rendre ordinaire le bonheur le plus extraordinaire.",
+"Tu es la raison pour laquelle les jours gris ont des couleurs.",
+"Aimer, c'est apprendre l'autre comme on apprend une belle chanson.",
+"Le silence à deux est une conversation que seuls les amoureux comprennent.",
+"On grandit toujours un peu en aimant quelqu'un.",
+"L'amour, c'est une promesse qu'on renouvelle sans même la dire.",
+"Dans le monde entier, ma maison, c'est toi.",
+"Certaines rencontres changent le cours d'une vie. La tienne a changé la mienne.",
+"Aimer, c'est accepter de dépendre un peu du bonheur de l'autre.",
+"Même loin de toi, je garde la place chaude à côté de moi.",
+"Le temps ne mesure pas l'amour, il le fait simplement grandir.",
+"Chaque journée avec toi est un petit chapitre que je relirais toujours.",
+"On ne choisit pas qui l'on aime, mais on choisit comment l'aimer.",
+"Un cœur heureux n'a pas besoin de grand-chose : juste de toi.",
+"Ce calendrier compte les jours, mais c'est l'amour qui leur donne un sens.",
+"Aimer, c'est partager le même horizon sans cesser d'être soi.",
+"Les plus belles choses se vivent à deux, même un simple café.",
+"Tu es mon présent préféré.",
+"L'amour grandit dans les détails : un mot, un regard, une main tendue.",
+"Rien n'est plus fort qu'un « je suis là » dit au bon moment.",
+"Il faut parfois s'éloigner un peu pour mesurer à quel point on se rapproche.",
+"Dans tes bras, le monde fait enfin silence.",
+"Aimer, c'est croire que demain sera plus doux parce qu'on le vivra ensemble.",
+"La vie est un fleuve ; avec toi, je n'ai plus peur du courant.",
+"Chaque « bonne nuit » est une promesse de retrouver le jour avec toi.",
+"On n'aime pas quelqu'un parce qu'il est parfait, mais parce qu'il est unique.",
+"Ton rire est la musique que je ne me lasse pas d'écouter.",
+"Ensemble, on transforme les journées ordinaires en jolies histoires.",
+"L'amour, c'est une graine : un peu d'eau, un peu de soleil, beaucoup de patience.",
+"Le vrai luxe, c'est de pouvoir être soi-même avec quelqu'un.",
+"Si le bonheur avait une adresse, ce serait là où tu es.",
+"Aimer, c'est se retrouver un peu plus chaque fois qu'on se retrouve.",
+"La confiance est le plus beau bijou d'un couple.",
+"Même quand tout va vite, je sais où est mon point fixe : toi.",
+"Le courage d'aimer, c'est de dire « je t'aime » encore et encore.",
+"Nos différences sont les couleurs de notre histoire.",
+"Les étoiles sont belles, mais je préfère nos soirées à regarder le ciel.",
+"Ce n'est pas la destination qui compte, c'est de marcher à tes côtés.",
+"Aimer, c'est donner du temps, la seule richesse qu'on ne retrouve jamais.",
+"Dans chaque au revoir, il y a déjà un « à bientôt ».",
+"Un baiser sur le front vaut tous les discours du monde.",
+"Le bonheur, c'est ce petit chez-nous qu'on construit à deux.",
+"Je ne sais pas ce que demain réserve, mais je sais avec qui je veux le vivre.",
+"Aimer, c'est se souvenir des plus beaux jours en préparant les prochains.",
+"La tendresse est la forme la plus douce de la force.",
+"Chaque jour avec toi est un cadeau, et j'apprends à en prendre soin.",
+"L'amour ne fait pas tourner le monde, mais il rend le voyage magnifique.",
+"Toi + moi, c'est la plus belle équation que la vie ait posée."
+];
 
 /* Calendrier du mois */
 function renderCal(){
