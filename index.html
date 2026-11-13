@@ -22,10 +22,18 @@ h1{font-family:'Pacifico',cursive;font-weight:400;font-size:clamp(28px,4.5vw,44p
 @keyframes flap{50%{transform:translateY(-4px) rotate(8deg)}}
 .sub .bf:last-child{animation-name:flap2}
 @keyframes flap2{0%,100%{transform:scaleX(-1)}50%{transform:scaleX(-1) translateY(-4px) rotate(8deg)}}
-#sync{text-align:center;font-size:12px;opacity:.8;margin:-6px 0 8px}
+#sync{font-size:12px;opacity:.8}
 .page{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
 .card{background:#fff;border-radius:22px;box-shadow:0 6px 22px #e0457b22;padding:14px}
-.top{display:grid;grid-template-columns:300px 1fr;gap:16px}
+.top{display:grid;grid-template-columns:minmax(300px,36%) 1fr;gap:16px}
+.link{background:none;color:#b3265a;font-weight:700;font-size:12px;text-decoration:underline;padding:2px 6px}
+#bar{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin:-4px 0 8px}
+.opt{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:#fff6fa;border-radius:14px;padding:10px 12px;font-weight:700;font-size:14px;color:var(--ink);margin-bottom:8px}
+.opt:hover{background:var(--rose2)}
+.opt img{width:54px;height:40px;object-fit:cover;border-radius:8px;flex:none}
+.opt[disabled]{opacity:.45;cursor:default}
+.nw{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:#fff6fa;border-radius:12px;padding:8px 10px;font-weight:600;font-size:14px;color:var(--ink);margin-bottom:6px}
+.nw:hover{background:var(--rose2)}
 .pic{width:100%;aspect-ratio:1.25;border-radius:18px;background:linear-gradient(160deg,#ffe3ee,#eae3ff);overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative}
 .pic svg{width:100%;height:100%}
 .pic::before,.pic::after{position:absolute;z-index:3;font-size:24px;line-height:1;filter:drop-shadow(0 1px 2px #0003)}
@@ -115,15 +123,14 @@ textarea{width:100%;font:inherit;border:2px solid var(--rose2);border-radius:12p
 <body>
 <h1>Fanie & Michaël 💕</h1>
 <p class="sub"><span class="bf">🦋</span><span>Notre petit calendrier d'amour</span><span class="bf">🦋</span></p>
-<div id="sync"></div>
+<div id="bar"><button class="link" id="me"></button><button class="link" id="bell" style="display:none">🔔 Me prévenir</button><span id="sync"></span></div>
 
 <div class="page">
  <div class="top">
   <div class="card">
    <div class="pic" id="pic"></div>
    <div class="mini">
-    <button class="btn" id="addPhoto">📷 Notre photo</button>
-    <button class="btn" id="rmPhoto" style="display:none">✖</button>
+    <button class="btn" id="addPhoto">📷 Changer la photo</button>
     <input type="file" id="file" accept="image/*" hidden>
    </div>
   </div>
@@ -180,6 +187,23 @@ textarea{width:100%;font:inherit;border:2px solid var(--rose2);border-radius:12p
   <div class="row"><input type="text" id="ccode" placeholder="Code secret" autocomplete="off"><button class="btn" id="cok">OK</button></div>
  </div>
 </div>
+<div class="modal" id="photoModal">
+ <div class="box">
+  <h4>Notre photo 📷</h4>
+  <div class="st">Que veux-tu faire ?</div>
+  <button class="opt" id="phNew">📷 Importer une nouvelle photo</button>
+  <button class="opt" id="phOther"></button>
+  <div style="text-align:right"><button class="btn" id="phClose">Fermer</button></div>
+ </div>
+</div>
+<div class="modal" id="newsModal">
+ <div class="box">
+  <h4>Du nouveau 💌</h4>
+  <div class="st" id="newsSub"></div>
+  <div id="newsList"></div>
+  <div style="text-align:right;margin-top:6px"><button class="btn" id="newsClose">OK</button></div>
+ </div>
+</div>
 <div class="modal" id="zoom" style="z-index:30"><img id="zimg" alt="" style="max-width:96vw;max-height:92vh;border-radius:14px"></div>
 
 <script>
@@ -204,7 +228,9 @@ const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&qu
 const SB='https://vshxudfhstondwcdpdxs.supabase.co/rest/v1/rpc/',SBK='sb_publishable_Xr_YRN1_gHMhbUbF2lHP1g_moCLsvQA';
 const lsGet=k=>{try{return localStorage.getItem(k)||''}catch(e){return ''}};
 const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
-let code=lsGet('fm-code'),who=lsGet('fm-who'),store={},journal={};
+let code=lsGet('fm-code'),who=lsGet('fm-who'),store={},journal={},rdvAll=[],jAll=[],photos={};
+const other=()=>who==='Fanie'?'Michaël':'Fanie';
+function renderMe(){$('me').textContent=who?(who==='Fanie'?'💖 ':'💙 ')+who+' (changer)':'Qui es-tu ?'}
 async function rpc(fn,args){
   const r=await fetch(SB+fn,{method:'POST',headers:{apikey:SBK,'Content-Type':'application/json'},body:JSON.stringify(args)});
   const t=await r.text();let j=null;try{j=t?JSON.parse(t):null}catch(e){}
@@ -215,11 +241,14 @@ function setSync(ok){$('sync').textContent=ok?'':'📴 hors ligne — réessaie 
 async function load(){
   if(!code){askCode();return}
   try{
-    const [rows,jrows]=await Promise.all([rpc('cal_list',{p:code}),rpc('cal_j_list',{p:code})]);store={};journal={};
+    const [rows,jrows]=await Promise.all([rpc('cal_list',{p:code}),rpc('cal_j_list',{p:code})]);store={};journal={};rdvAll=[];jAll=[];
     const kk=s=>{const [y,m,d]=s.split('-').map(Number);return y+'-'+m+'-'+d};
-    rows.forEach(r=>{const k=kk(r.jour);(store[k]=store[k]||[]).push({id:r.id,t:r.texte,a:r.auteur})});
-    jrows.forEach(r=>{const k=kk(r.jour);(journal[k]=journal[k]||[]).push({id:r.id,t:r.texte,a:r.auteur,p:r.has_photo})});
+    const nn=s=>{const [y,m,d]=s.split('-').map(Number);return dn(y,m-1,d)};
+    rows.forEach(r=>{const k=kk(r.jour);(store[k]=store[k]||[]).push({id:r.id,t:r.texte,a:r.auteur});rdvAll.push({id:r.id,n:nn(r.jour),t:r.texte,a:r.auteur,c:Date.parse(r.created_at)})});
+    jrows.forEach(r=>{const k=kk(r.jour);(journal[k]=journal[k]||[]).push({id:r.id,t:r.texte,a:r.auteur,p:r.has_photo});jAll.push({id:r.id,n:nn(r.jour),t:r.texte,a:r.auteur,c:Date.parse(r.created_at)})});
     setSync(true);renderCal();if($('modal').classList.contains('open')){renderList();renderJournal()}
+    checkNew();
+    syncPhotos().catch(()=>{});
   }catch(e){
     if(/code/i.test(e.message)){code='';lsSet('fm-code','');askCode('Code incorrect, réessaie 💭')}else setSync(false);
   }
@@ -230,9 +259,24 @@ function askCode(msg){
 }
 document.querySelectorAll('#who button').forEach(b=>b.onclick=()=>{who=b.dataset.w;lsSet('fm-who',who);document.querySelectorAll('#who button').forEach(x=>x.classList.toggle('sel',x===b))});
 if(who)document.querySelectorAll('#who button').forEach(x=>x.classList.toggle('sel',x.dataset.w===who));
-$('cok').onclick=()=>{const v=$('ccode').value.trim();if(!v)return;code=v;lsSet('fm-code',v);if(!who){who='Fanie';lsSet('fm-who',who)}$('codeModal').classList.remove('open');load()};
+$('cok').onclick=()=>{
+  const v=$('ccode').value.trim()||code;
+  if(!who){$('cmsg').textContent='Choisis qui tu es 💕';return}
+  if(!v)return;
+  code=v;lsSet('fm-code',v);$('codeModal').classList.remove('open');renderMe();renderPic();load();
+};
+$('me').onclick=()=>askCode('Qui es-tu ? (le code est déjà enregistré)');
+$('bell').onclick=async()=>{try{await Notification.requestPermission()}catch(e){}updateBell()};
+function updateBell(){$('bell').style.display=('Notification' in window&&Notification.permission==='default')?'':'none'}
+async function notify(title,body){
+  try{
+    if(!('Notification' in window)||Notification.permission!=='granted')return;
+    const reg=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();
+    if(reg&&reg.showNotification)reg.showNotification(title,{body,icon:'icon-192.png',badge:'icon-192.png'});else new Notification(title,{body,icon:'icon-192.png'});
+  }catch(e){}
+}
 $('ccode').onkeydown=e=>{if(e.key==='Enter')$('cok').click()};
-setInterval(()=>{if(code&&!document.hidden)load()},30000);
+setInterval(()=>{if(code)load()},45000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
 
 const now=new Date();
@@ -258,20 +302,50 @@ const COUPLE=`<svg viewBox="0 0 250 200" xmlns="http://www.w3.org/2000/svg">
 <circle cx="126" cy="150" r="7" fill="#ffe0c8"/>
 <text x="112" y="40" font-size="20">💖</text>
 </svg>`;
+function curPhoto(){
+  const own=photos[who]||lsGet('fm-photo'),oth=photos[other()];
+  if(lsGet('fm-photo-src')==='other'&&oth)return oth;
+  return own||oth||'';
+}
 function renderPic(){
-  const img=lsGet('fm-photo');
-  // photo affichée en entier (rien n'est coupé) sur un fond flou de la même photo
+  const img=curPhoto();
+  // le cadre prend la forme de la photo ; rien n'est coupé, un fond flou comble les bords
   $('pic').innerHTML=img?`<img class="bg" alt="" src="${img}"><img class="fg" alt="Fanie et Michaël" src="${img}">`:COUPLE;
-  $('rmPhoto').style.display=img?'':'none';
+  if(!img){$('pic').style.aspectRatio='1.25';return}
+  const im=new Image();im.onload=()=>{$('pic').style.aspectRatio=Math.min(1.8,Math.max(1,im.width/im.height))};im.src=img;
+}
+async function syncPhotos(){
+  if(!code||!who)return;
+  const info=await rpc('cal_photo_info',{p:code});
+  for(const r of info){
+    const ck='fm-ph-'+r.auteur;let c=null;try{c=JSON.parse(lsGet(ck))}catch(e){}
+    if(c&&c.u===r.updated_at&&c.d)photos[r.auteur]=c.d;
+    else{const d=await rpc('cal_photo_get',{p:code,a:r.auteur});if(d){photos[r.auteur]=d;lsSet(ck,JSON.stringify({u:r.updated_at,d}))}}
+  }
+  // ancienne photo gardée sur cet appareil : on l'enregistre pour que l'autre la voie
+  const legacy=lsGet('fm-photo');
+  if(!photos[who]&&legacy&&legacy.length<450000){photos[who]=legacy;rpc('cal_photo_set',{p:code,a:who,ph:legacy}).catch(()=>{})}
+  renderPic();
 }
 function readImg(file,max,q){return new Promise(res=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{
   const s=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);
   c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',q))};im.src=r.result};r.readAsDataURL(file)})}
-$('addPhoto').onclick=()=>$('file').click();
-$('rmPhoto').onclick=()=>{try{localStorage.removeItem('fm-photo')}catch(e){}renderPic()};
+$('addPhoto').onclick=()=>{
+  const o=photos[other()];
+  $('phOther').innerHTML=o?`<img alt="" src="${o}">💞 Récupérer la photo de ${esc(other())}`:`💞 ${esc(other())} n'a pas encore mis de photo`;
+  $('phOther').disabled=!o;
+  $('photoModal').classList.add('open');
+};
+$('phClose').onclick=()=>$('photoModal').classList.remove('open');
+$('photoModal').onclick=e=>{if(e.target===$('photoModal'))$('photoModal').classList.remove('open')};
+$('phNew').onclick=()=>$('file').click();
+$('phOther').onclick=()=>{lsSet('fm-photo-src','other');renderPic();$('photoModal').classList.remove('open')};
 $('file').onchange=async e=>{
   const f=e.target.files[0];if(!f)return;
-  lsSet('fm-photo',await readImg(f,900,.85));renderPic();e.target.value='';
+  let d=await readImg(f,1000,.8);if(d.length>440000)d=await readImg(f,700,.7);
+  lsSet('fm-photo',d);lsSet('fm-photo-src','own');photos[who]=d;renderPic();e.target.value='';
+  $('photoModal').classList.remove('open');
+  if(code&&who){try{await rpc('cal_photo_set',{p:code,a:who,ph:d})}catch(err){setSync(false)}}
 };
 
 /* Bulle du statut */
@@ -388,13 +462,46 @@ $('jadd').onclick=async()=>{
   try{await rpc('cal_j_add',{p:code,j:j,t:t,a:who||null,ph:jpending});jpending=null;$('jtxt').value='';$('jprev').innerHTML='';await load()}catch(e){setSync(false)}
 };
 
+/* Nouveautés (popup à l'ouverture + notification si possible) */
+const notified=new Set();let shownMax=0;
+function maxC(){return Math.max(0,...rdvAll.map(x=>x.c),...jAll.map(x=>x.c))}
+function checkNew(){
+  if(!who)return;
+  const seen=Date.parse(lsGet('fm-seen')||'1970-01-01T00:00:00Z');
+  const items=[];
+  jAll.filter(e=>e.a&&e.a!==who&&e.c>seen&&!notified.has('j'+e.id)).forEach(e=>{
+    const mine=jAll.some(m=>m.a===who&&m.n===e.n&&m.c<e.c);
+    items.push({k:'j'+e.id,n:e.n,c:e.c,tab:'J',txt:mine?`💬 ${e.a} t'a répondu dans le journal (${fmt(e.n)})`:`📖 ${e.a} a écrit dans le journal (${fmt(e.n)})`});
+  });
+  rdvAll.filter(e=>e.a&&e.a!==who&&e.c>seen&&!notified.has('r'+e.id)).forEach(e=>{
+    items.push({k:'r'+e.id,n:e.n,c:e.c,tab:'R',txt:`📅 ${e.a} a ajouté un rendez-vous : « ${e.t} » (${fmt(e.n)})`});
+  });
+  if(!items.length){const mx=maxC();if(mx>seen&&!$('newsModal').classList.contains('open'))lsSet('fm-seen',new Date(mx).toISOString());return}
+  if($('newsModal').classList.contains('open')||$('codeModal').classList.contains('open'))return;
+  items.sort((a,b)=>a.c-b.c).forEach(i=>{notified.add(i.k);shownMax=Math.max(shownMax,i.c)});
+  $('newsSub').textContent=items.length===1?'1 nouveauté depuis ta dernière visite :':`${items.length} nouveautés depuis ta dernière visite :`;
+  $('newsList').innerHTML=items.map((i,x)=>`<button class="nw" data-x="${x}">${esc(i.txt)}</button>`).join('');
+  $('newsList').querySelectorAll('.nw').forEach(b=>b.onclick=()=>{
+    const it=items[+b.dataset.x];closeNews();
+    const d=toDate(it.n);vy=d.getUTCFullYear();vm=d.getUTCMonth();renderCal();openDay(it.n);if(it.tab==='J')showTab('J');
+  });
+  $('newsModal').classList.add('open');
+  if(document.hidden)notify('Fanie & Michaël 💕',items[items.length-1].txt);
+}
+function closeNews(){
+  $('newsModal').classList.remove('open');
+  if(shownMax)lsSet('fm-seen',new Date(shownMax).toISOString());
+}
+$('newsClose').onclick=closeNews;
+$('newsModal').onclick=e=>{if(e.target===$('newsModal'))closeNews()};
+
 /* Petits cœurs et papillons */
 ['💕','🦋','💖','🦋','💗','🦋','💞'].forEach((e,i)=>{const s=document.createElement('span');s.className='float';s.textContent=e;s.style.left=(8+i*13)+'%';s.style.animationDuration=(14+i*3)+'s';s.style.animationDelay=(-i*4)+'s';document.body.appendChild(s)});
 
 /* Installation comme appli */
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
 
-renderPic();renderStatus();renderCal();load();
+renderMe();updateBell();renderPic();renderStatus();renderCal();load();
 </script>
 </body>
 </html>
