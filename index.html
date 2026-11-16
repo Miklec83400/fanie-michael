@@ -70,7 +70,9 @@ button{font:inherit;cursor:pointer;border:0}
 .day.today .n{background:#d9708f;color:#fff}
 .day .sw{position:absolute;top:4px;right:5px;font-size:13px;line-height:1}
 .day .jm{position:absolute;bottom:3px;right:5px;font-size:12px;line-height:1}
+.day .evs{display:flex;flex-direction:column;gap:2px;width:100%;align-items:center}
 .day .ev{width:100%;text-align:center;font-size:11px;font-weight:600;background:#ffffffcc;border-radius:6px;padding:0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.day .ev .ic{font-weight:400;margin-right:2px}
 .year h3{font-size:14px;margin-bottom:8px}
 .months{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
 .mb{background:var(--pist2);border-radius:14px;padding:8px}
@@ -91,6 +93,21 @@ button{font:inherit;cursor:pointer;border:0}
 .box li button{background:none;color:#b8506f;font-size:16px}
 .row{display:flex;gap:6px}
 input[type=text]{flex:1;font:inherit;border:2px solid var(--rose2);border-radius:12px;padding:7px 10px;min-width:0}
+.box li{flex-wrap:wrap}
+.box li>.top{display:flex;justify-content:space-between;align-items:center;width:100%;gap:6px}
+.rx{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;width:100%}
+.rx button{background:#fff;border:1.5px solid var(--rose2);border-radius:999px;padding:1px 8px;font-size:14px;font-weight:700;color:#7a4a60}
+.rx button.me{background:var(--rose2);border-color:#d9708f}
+.rx button.add{opacity:.7;color:#b8506f}
+.pk{background:#fff6fa;border-radius:14px;padding:6px;margin:6px 0}
+.pk .tb{display:flex;gap:4px;overflow-x:auto;padding-bottom:4px}
+.pk .tb button{flex:none;background:var(--rose2);color:#b8506f;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;white-space:nowrap}
+.pk .tb button.sel{background:var(--rose);color:#fff}
+.pk .gr{display:grid;grid-template-columns:repeat(auto-fill,minmax(38px,1fr));gap:2px;max-height:150px;overflow:auto}
+.pk .gr button{background:none;font-size:22px;border-radius:8px;padding:2px 0}
+.pk .gr button:hover{background:var(--rose2)}
+#icb{background:#fff6fa;border:2px solid var(--rose2);border-radius:12px;font-size:20px;padding:0 9px}
+#reactModal{z-index:25}
 .emo{display:flex;gap:4px;margin:8px 0;flex-wrap:wrap}
 .emo button{background:#fff6fa;border-radius:10px;font-size:18px;padding:3px 7px}
 .emo button:hover{background:var(--rose2)}
@@ -121,7 +138,11 @@ textarea{width:100%;font:inherit;border:2px solid var(--rose2);border-radius:12p
  .day .n{width:22px;height:22px;line-height:22px;font-size:12px}
  .day .sw{font-size:9px;top:1px;right:1px}
  .day .jm{font-size:9px;bottom:1px;right:1px}
- .day .ev{font-size:0;padding:0;width:6px;height:6px;border-radius:50%;background:#d9708f;display:inline-block}
+ .day .evs{flex-direction:row;flex-wrap:wrap;justify-content:center;gap:0}
+ .day .ev{width:auto;background:none;padding:0;font-size:15px;line-height:1.15;overflow:visible}
+ .day .ev .tx{display:none}
+ .day .ev .ic{margin:0}
+ .day .ev .ic.dot{font-size:12px;color:#d9708f}
  .months{grid-template-columns:repeat(2,1fr)}
 }
 </style>
@@ -171,8 +192,9 @@ textarea{width:100%;font:inherit;border:2px solid var(--rose2);border-radius:12p
   <div class="tabs"><button id="tabR" class="sel">📅 Rendez-vous</button><button id="tabJ">📖 Journal</button></div>
   <div id="paneR">
    <ul id="mlist"></ul>
-   <div class="emo" id="emo"></div>
+   <div class="pk" id="icpick" style="display:none"></div>
    <div class="row">
+    <button id="icb" title="Choisir une icône">😊</button>
     <input type="text" id="mtxt" placeholder="Un petit rendez-vous, un projet…" maxlength="60">
     <button class="btn" id="madd">Ajouter</button>
    </div>
@@ -218,6 +240,8 @@ textarea{width:100%;font:inherit;border:2px solid var(--rose2);border-radius:12p
   <div style="text-align:right"><button class="btn" id="phClose">Fermer</button></div>
  </div>
 </div>
+<div class="modal" id="reactModal"><div class="box"><h4>Ta réaction 💕</h4><div class="pk" id="rxpick"></div><div style="text-align:right"><button class="btn" id="rxclose">Fermer</button></div></div></div>
+
 <div class="modal" id="newsModal">
  <div class="box">
   <h4>Du nouveau 💌</h4>
@@ -263,7 +287,7 @@ function setSync(ok){$('sync').textContent=ok?'':'📴 hors ligne — réessaie 
 async function load(){
   if(!code){if(!lsGet('fm-out'))askCode();return}
   try{
-    const [rows,jrows]=await Promise.all([rpc('cal_list',{p:code}),rpc('cal_j_list',{p:code})]);store={};journal={};rdvAll=[];jAll=[];
+    const [rows,jrows,rrows]=await Promise.all([rpc('cal_list',{p:code}),rpc('cal_j_list',{p:code}),rpc('cal_react_list',{p:code}).catch(()=>[])]);reacts={};(rrows||[]).forEach(r=>{const k=r.kind+':'+r.item_id;const o=reacts[k]=reacts[k]||{};(o[r.emoji]=o[r.emoji]||[]).push(r.auteur)});store={};journal={};rdvAll=[];jAll=[];
     const kk=s=>{const [y,m,d]=s.split('-').map(Number);return y+'-'+m+'-'+d};
     const nn=s=>{const [y,m,d]=s.split('-').map(Number);return dn(y,m-1,d)};
     rows.forEach(r=>{const k=kk(r.jour);(store[k]=store[k]||[]).push({id:r.id,t:r.texte,a:r.auteur});rdvAll.push({id:r.id,n:nn(r.jour),t:r.texte,a:r.auteur,c:Date.parse(r.created_at)})});
@@ -510,7 +534,7 @@ function renderCal(){
     const jm=(journal[key(n)]||[]).length?'<span class="jm">📖</span>':'';
     html+=`<button class="day${d.getUTCMonth()!==vm?' out':''}${n===todayN?' today':''}" style="background:${bg}" data-n="${n}">
       <span class="n">${d.getUTCDate()}</span><span class="sw">${sw}</span>${jm}
-      ${evs.slice(0,2).map(e=>`<span class="ev">${esc(e.t)}</span>`).join('')}</button>`;
+      <div class="evs">${evs.slice(0,3).map(e=>{const [ic,tx]=splitIcon(e.t);return `<span class="ev"><b class="ic${ic?'':' dot'}">${ic?esc(ic):'●'}</b><span class="tx">${esc(tx)}</span></span>`}).join('')}</div></button>`;
   }
   $('grid').innerHTML=html;
   $('grid').querySelectorAll('.day').forEach(b=>b.onclick=()=>openDay(+b.dataset.n));
@@ -540,24 +564,80 @@ $('nextm').onclick=()=>{vm++;if(vm>11){vm=0;vy++}renderCal()};
 
 /* Fenêtre d'un jour */
 let curN=null,jpending=null;const pcache={};
-['🍽️','🎬','✈️','🎂','💌','🛒','🌹','🎉'].forEach(e=>{const b=document.createElement('button');b.textContent=e;b.onclick=()=>{$('mtxt').value=e+' '+$('mtxt').value.replace(/^\p{Extended_Pictographic}️?\s*/u,'');$('mtxt').focus()};$('emo').appendChild(b)});
+const ICONS={
+'🏠 Maison':'🚚 📦 🏠 🔑 🛋️ 🧹 🧺 🪴 🛏️ 🚿 🛁 🧽 🪣 🔧 🔨 🪛 🧰 💡 🪟 🚪 🏡 🏢 🧱 🪜 🗑️ 🛒 🪑 🖼️ 🪞 🧸 🕯️ 🌡️ 🔌 📺 🍳 🧯 🪠 🧼 🧴 🪤 🚛 🏗️ 📮 🗝️ 🖌️ 🎨 🪚 📏 🧵 🪡',
+'🍽️ Repas':'🍽️ 🍕 🍔 🍟 🌭 🥪 🌮 🌯 🍝 🍜 🍣 🍱 🥗 🥘 🍲 🥞 🧇 🥐 🍞 🧀 🍳 🥓 🍗 🍖 🥩 🍤 🥟 🍰 🎂 🧁 🍩 🍪 🍫 🍦 🍨 🍓 🍒 🍑 🍉 🍇 🥑 🍿 🥂 🍷 🍸 🍹 🍺 ☕ 🍵 🧋 🥤 🍾',
+'🎬 Sorties':'🎬 🎞️ 🍿 🎭 🎪 🎡 🎢 🎠 🎤 🎧 🎸 🎹 🎻 🎵 🎶 🎨 📚 📖 🖼️ 🏛️ 🎳 🎯 🎲 🧩 ♟️ 🏊 🏄 🚴 🧗 ⛷️ 🎾 ⚽ 🏀 🏓 🥾 🏕️ ⛺ 🎣 🛍️ 💃 🕺 🎉 🎊 🪩 🎟️ 🎫 🌅 🌄 🌳 🧘 🎮 🕹️',
+'✈️ Voyage':'✈️ 🛫 🛬 🚗 🚙 🚕 🚌 🚆 🚄 🚢 ⛴️ 🚤 ⛵ 🚲 🛵 🏍️ 🚁 🧳 🎒 🗺️ 🧭 🏖️ 🏝️ 🏔️ 🌋 🗽 🗼 🏰 ⛩️ 🕌 ⛪ 🌉 🌍 🌎 🌏 📸 🛂 ⛽ 🅿️ 🏨 🛌 ⛱️ 🌴 🌊 🐚 🚏 🚉 🛶 🪂 🎿 🏜️ 🌆 🌇',
+'💞 Amour':'💖 💕 💞 💗 💓 💘 💝 💌 💋 😘 🥰 😍 💑 👩‍❤️‍👨 💏 🌹 🌷 🌸 🌺 💐 🕯️ 🛁 🥂 🍷 🍫 🧸 💍 💎 👰 🤵 💒 🌙 ⭐ ✨ 🌠 🦋 🧚 👼 🕊️ 🐦 🫶 🤗 😻 🎁 🎀 📸 💃 🕺 🛏️ 🌅 🏖️ ❤️‍🔥',
+'🎉 Fêtes':'🎉 🎊 🎂 🎈 🎁 🎀 🥳 🪅 🎆 🎇 🧨 🎄 🎅 🤶 🦃 🐰 🥚 🎃 👻 🪔 🥂 🍾 🍰 🧁 🕯️ 👨‍👩‍👧 👵 👴 👶 🧒 👫 👭 👬 🐶 🐱 🐴 🏡 🍽️ 🎶 🎤 💃 🕺 🎵 📸 💌 🎟️ 🪩 🎠 🛝 ⛪ 🕎 🌟 🎖️ 🏆',
+'🩺 Santé/Admin':'🩺 💊 💉 🦷 👓 🏥 🚑 🧘 💆 💇 💅 🛁 🏃 🚴 🏋️ 🥗 🍎 💧 😴 🧴 📋 📝 📄 ✉️ 📬 📞 ☎️ 💻 🖨️ 📅 🗓️ ⏰ ⌛ 🏦 💶 💳 🧾 🪪 🛂 🚓 🏛️ 🔐 🗂️ 📁 📎 ✂️ 📌 📍 🚗 🔧 ⚙️ 🧾 📊',
+'💼 Travail':'💼 🏢 💻 🖥️ ⌨️ 📱 📊 📈 📉 📆 📝 ✏️ 🖊️ 📚 🎓 🏫 🧪 🔬 🛠️ 👷 🧑‍🍳 🧑‍⚕️ 🧑‍🏫 🧑‍🔧 🚜 🚚 📦 🛒 🛍️ 🧾 🏪 🏬 🏭 ☕ 🥪 🕘 ⏱️ 📞 🤝 🎯 🏆 🥇 📣 📢 💡 🔑 🗃️ 🗄️ 🧮 📐 📏 🪙 💰 🏷️',
+'🎮 Jeux/Fantasy':'🎮 🕹️ 👾 🎲 ♟️ 🧩 🃏 🎯 ⚔️ 🗡️ 🛡️ 🏹 🪄 🔮 🧙 🧝 🧚 🧜 🧛 🧞 👼 😇 😈 🐉 🐲 🦄 🦅 🐺 🦊 🦁 👑 💎 📜 🗝️ 🏰 ⛰️ 🌋 🔥 ⚡ ❄️ 🌪️ 🌙 ☀️ ⭐ 💫 🧪 🪙 💀 👹 🧿 🪐 🚀 🛸 🤖'
+};
+const REACTS={
+'😊 Classiques':'❤️ 😍 🥰 😘 😂 🤣 😭 🥹 😊 😁 😆 😅 🙃 😉 😎 🤩 🥳 😴 🤔 😮 😱 😡 😢 🤗 🫶 👍 👏 🙌 🙏 💪 👀 🔥 ✨ 💯 🎉 💋 😋 🤭 🫠 🥲 😏 🤤',
+'💕 Amour':'💖 💕 💞 💗 💓 💘 💝 💟 ❤️‍🔥 🧡 💛 💚 💙 💜 🤍 💌 💋 🌹 🌷 🌸 🌺 💐 💍 💑 💏 🫂 😻 🥰 😚 🫶 🦋 👼 🕊️ 🧸 🍫 🌙 ⭐ 🌠 🪽 🍓 🍒 🎀 🩷 🫰 💫 💎',
+'🌸 Kawaii':'🐱 🐶 🐰 🐻 🐼 🐨 🐹 🐥 🐣 🦆 🦄 🦋 🐝 🐞 🐢 🐙 🦊 🐑 🐷 🐸 🐧 🦭 🍓 🍒 🍑 🍡 🍙 🍥 🧁 🍰 🍭 🍬 🍩 🧋 🌸 🌼 🍀 ☁️ 🌈 ⭐ 🎀 🫧 🧸 🪁 🎈 🍃 🪷',
+'⚔️ Fantasy':'⚔️ 🗡️ 🛡️ 🏹 🪄 🔮 📜 🧙 🧙‍♀️ 🧝 🧝‍♀️ 🧚 🧚‍♀️ 🧜‍♀️ 🧛 🧞 👼 😇 😈 👿 🐉 🐲 🦄 🦅 🦉 🐺 🦌 🐦‍🔥 👑 💎 🪙 🗝️ 🏰 ⛰️ 🔥 ⚡ ❄️ 🌪️ 🌊 🌙 ☀️ ⭐ 💫 ☄️ 🪽 🧿 💀 🪐 ✨ 🌟',
+'🍌 Rigolo':'🍌 🟡 💛 🥽 😜 🤪 😝 😆 😂 🤣 🥴 🤡 👁️ 🙈 🙉 🙊 🐒 🦍 🎈 🎉 🥳 🎂 🍦 🍕 🍔 🍺 🍻 🧃 🤸 💃 🕺 🪩 🎸 🎤 🚀 🛸 👽 🤖 🦖 🐥 🌈 💥 💫 🤯 😵‍💫 🫨 😬 😳 🤭',
+'🎮 Gaming':'🎮 🕹️ 👾 🏆 🥇 🎯 🎲 🧩 ♟️ 🃏 🤖 👑 💎 ⭐ 🌟 💥 🔥 ⚡ 💯 🚀 🛡️ ⚔️ 💀 ☠️ 🧟 👻 🎃 🪙 💰 🍄 🧪 🗡️ 🏹 🧙 🐲 🦄 🔮 🥷 🏰 🪄 ✨ 📈 🎊 🎉 💪 🫡 🤝'
+};
+const split=o=>Object.entries(o).map(([k,v])=>[k,v.split(' ')]);
+function buildPicker(el,themes,onPick,startTab){
+  const T=split(themes);let cur=startTab||0;
+  el.innerHTML='<div class="tb"></div><div class="gr"></div>';
+  const tb=el.firstChild,gr=el.lastChild;
+  function show(){
+    tb.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('sel',i===cur));
+    gr.innerHTML='';T[cur][1].forEach(e=>{const b=document.createElement('button');b.type='button';b.textContent=e;b.onclick=()=>onPick(e);gr.appendChild(b)});gr.scrollTop=0;
+  }
+  T.forEach(([k],i)=>{const b=document.createElement('button');b.type='button';b.textContent=k;b.onclick=()=>{cur=i;show()};tb.appendChild(b)});
+  show();
+}
+const ICRE=/^(\p{Extended_Pictographic}(?:️|‍\p{Extended_Pictographic}|\p{Emoji_Modifier})*)\s*/u;
+function splitIcon(t){const m=ICRE.exec(t);return m?[m[1],t.slice(m[0].length)]:['',t]}
+let reacts={};
+function rxHTML(kind,id){
+  const l=reacts[kind+':'+id]||{};
+  const chips=Object.keys(l).map(e=>`<button data-e="${esc(e)}" class="${l[e].includes(who)?'me':''}" title="${esc(l[e].join(', '))}">${esc(e)}${l[e].length>1?' '+l[e].length:''}</button>`).join('');
+  return `<div class="rx" data-k="${kind}" data-i="${id}">${chips}<button class="add" data-e="" aria-label="Ajouter une réaction">☺＋</button></div>`;
+}
+async function toggleReact(k,i,e){
+  try{await rpc('cal_react_toggle',{p:code,k:k,i:+i,e:e,a:who});await load()}catch(x){setSync(false)}
+}
+let rxTarget=null;
+function wireReacts(root){
+  root.querySelectorAll('.rx').forEach(r=>r.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    const k=r.dataset.k,i=r.dataset.i;
+    if(b.dataset.e)toggleReact(k,i,b.dataset.e);else{rxTarget=[k,i];$('reactModal').classList.add('open')}
+  }));
+}
+buildPicker($('rxpick'),REACTS,e=>{$('reactModal').classList.remove('open');if(rxTarget)toggleReact(rxTarget[0],rxTarget[1],e)});
+$('rxclose').onclick=()=>$('reactModal').classList.remove('open');
+$('reactModal').onclick=e=>{if(e.target===$('reactModal'))$('reactModal').classList.remove('open')};
+let curIcon='';
+function setIcon(e){curIcon=e||'';$('icb').textContent=curIcon||'😊';$('icpick').style.display='none'}
+buildPicker($('icpick'),ICONS,e=>{setIcon(e);$('mtxt').focus()});
+$('icb').onclick=()=>{if(curIcon){setIcon('');return}const d=$('icpick');d.style.display=d.style.display==='none'?'':'none'};
+
 function openDay(n){
   if(!code||!who){openAcc();return}
   curN=n;$('mdate').textContent=fmt(n);
   const [a,b]=dayState(n);
   $('mst').textContent=dow(n)===0&&a!==b?(b?'💖 Retrouvailles !':'🌙 À bientôt'):(b?'💖 Ensemble':'');
   jpending=null;$('jtxt').value='';$('jprev').innerHTML='';showTab('R');
-  renderList();renderJournal();$('modal').classList.add('open');$('mtxt').value='';
+  renderList();renderJournal();$('modal').classList.add('open');$('mtxt').value='';setIcon('');
 }
 function renderList(){
   const l=store[key(curN)]||[];
-  $('mlist').innerHTML=l.length?l.map(e=>`<li><span>${esc(e.t)}${e.a?` <small style="opacity:.55">· ${esc(e.a)}</small>`:''}</span><button data-id="${e.id}" aria-label="Supprimer">✕</button></li>`).join(''):'<li style="opacity:.6">Rien de prévu pour l\'instant 💭</li>';
-  $('mlist').querySelectorAll('button').forEach(b=>b.onclick=async()=>{try{await rpc('cal_del',{p:code,i:+b.dataset.id});await load()}catch(e){setSync(false)}});
+  $('mlist').innerHTML=l.length?l.map(e=>`<li><div class="top"><span>${esc(e.t)}${e.a?` <small style="opacity:.55">· ${esc(e.a)}</small>`:''}</span><button data-id="${e.id}" aria-label="Supprimer">✕</button></div>${rxHTML('rdv',e.id)}</li>`).join(''):'<li style="opacity:.6">Rien de prévu pour l\'instant 💭</li>';
+  wireReacts($('mlist'));$('mlist').querySelectorAll('button[data-id]').forEach(b=>b.onclick=async()=>{try{await rpc('cal_del',{p:code,i:+b.dataset.id});await load()}catch(e){setSync(false)}});
 }
 async function addEv(){
-  const t=$('mtxt').value.trim();if(!t)return;
+  const t0=$('mtxt').value.trim();if(!t0&&!curIcon)return;const t=((curIcon?curIcon+' ':'')+t0).trim().slice(0,80);
   const d=toDate(curN);const j=d.getUTCFullYear()+'-'+p2(d.getUTCMonth()+1)+'-'+p2(d.getUTCDate());
-  try{await rpc('cal_add',{p:code,j:j,t:t,a:who||null});$('mtxt').value='';await load()}catch(e){setSync(false)}
+  try{await rpc('cal_add',{p:code,j:j,t:t,a:who||null});$('mtxt').value='';setIcon('');await load()}catch(e){setSync(false)}
 }
 $('madd').onclick=addEv;$('mtxt').onkeydown=e=>{if(e.key==='Enter')addEv()};
 $('mclose').onclick=()=>$('modal').classList.remove('open');
@@ -573,8 +653,8 @@ function renderJournal(){
   if(curN===null)return;
   const jl=journal[key(curN)]||[];
   $('tabJ').textContent='📖 Journal'+(jl.length?` (${jl.length})`:'');
-  $('jlist').innerHTML=jl.length?jl.map(e=>`<div class="je"><small><span>${esc(e.a||'')}</span><button data-id="${e.id}" aria-label="Supprimer">✕</button></small>${e.t?`<p>${esc(e.t)}</p>`:''}${e.p?`<img data-id="${e.id}" alt="">`:''}</div>`).join(''):'<div class="je" style="opacity:.6">Pas encore de souvenir ce jour-là 💭</div>';
-  $('jlist').querySelectorAll('button').forEach(b=>b.onclick=async()=>{try{await rpc('cal_j_del',{p:code,i:+b.dataset.id});await load()}catch(e){setSync(false)}});
+  $('jlist').innerHTML=jl.length?jl.map(e=>`<div class="je"><small><span>${esc(e.a||'')}</span><button data-id="${e.id}" aria-label="Supprimer">✕</button></small>${e.t?`<p>${esc(e.t)}</p>`:''}${e.p?`<img data-id="${e.id}" alt="">`:''}${rxHTML('journal',e.id)}</div>`).join(''):'<div class="je" style="opacity:.6">Pas encore de souvenir ce jour-là 💭</div>';
+  wireReacts($('jlist'));$('jlist').querySelectorAll('button[data-id]').forEach(b=>b.onclick=async()=>{try{await rpc('cal_j_del',{p:code,i:+b.dataset.id});await load()}catch(e){setSync(false)}});
   $('jlist').querySelectorAll('img').forEach(async im=>{
     const id=+im.dataset.id;
     try{if(!pcache[id])pcache[id]=await rpc('cal_j_photo',{p:code,i:id});im.src=pcache[id]}catch(e){}
