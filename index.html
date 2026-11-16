@@ -21,6 +21,8 @@ h1{font-family:'Pacifico',cursive;font-weight:400;font-size:clamp(20px,6vw,44px)
 @keyframes beat{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
 .hd{display:flex;align-items:center;justify-content:center;gap:clamp(8px,3vw,30px);margin-bottom:4px}
 .av.mir{transform:scaleX(-1)}
+.avb{background:none;padding:0;border-radius:50%;line-height:0;cursor:pointer;flex:none;transition:transform .2s}
+.avb:hover{transform:scale(1.06)}
 .tw{position:fixed;pointer-events:none;z-index:1;font-size:16px;opacity:0;animation:tw 3.2s ease-in-out infinite}
 @keyframes tw{0%,100%{opacity:0;transform:scale(.5) rotate(0)}50%{opacity:.9;transform:scale(1.15) rotate(25deg)}}
 .av{width:clamp(66px,9vw,100px);height:clamp(66px,9vw,100px);border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 4px 14px #d9708f55;flex:none}
@@ -127,13 +129,13 @@ textarea{width:100%;font:inherit;border:2px solid var(--rose2);border-radius:12p
 <body>
 <header>
  <div class="hd">
-  <img class="av" src="photo1.jpg" alt="Fanie et Michaël">
+  <button class="avb" aria-label="Connexion"><img class="av" src="photo1.jpg" alt="Fanie et Michaël"></button>
   <h1>Fanie & Michaël</h1>
-  <img class="av mir" src="photo2.jpg" alt="Fanie et Michaël">
+  <button class="avb" aria-label="Connexion"><img class="av mir" src="photo2.jpg" alt="Fanie et Michaël"></button>
  </div>
  <p class="sub"><span class="bf">💖</span><span>Notre petit calendrier d'amour</span><span class="bf">💖</span></p>
 </header>
-<div id="bar"><button class="link" id="me"></button><button class="link" id="bell" style="display:none">🔔 Me prévenir</button><span id="sync"></span></div>
+<div id="bar"><button class="link" id="bell" style="display:none">🔔 Me prévenir</button><span id="sync"></span></div>
 
 <div class="page">
  <div class="top">
@@ -197,6 +199,16 @@ textarea{width:100%;font:inherit;border:2px solid var(--rose2);border-radius:12p
   <div class="row"><input type="text" id="ccode" placeholder="Code secret" autocomplete="off"><button class="btn" id="cok">OK</button></div>
  </div>
 </div>
+<div class="modal" id="accModal">
+ <div class="box">
+  <h4>Mon compte 💕</h4>
+  <div class="st" id="accS"></div>
+  <button class="opt" id="accLogin">🔑 Se connecter</button>
+  <button class="opt" id="accSwitch">🔄 Changer de personne</button>
+  <button class="opt" id="accOut">🚪 Se déconnecter</button>
+  <div style="text-align:right"><button class="btn" id="accClose">Fermer</button></div>
+ </div>
+</div>
 <div class="modal" id="photoModal">
  <div class="box">
   <h4>Notre photo 📷</h4>
@@ -240,7 +252,7 @@ const lsGet=k=>{try{return localStorage.getItem(k)||''}catch(e){return ''}};
 const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
 let code=lsGet('fm-code'),who=lsGet('fm-who'),store={},journal={},rdvAll=[],jAll=[],photos={};
 const other=()=>who==='Fanie'?'Michaël':'Fanie';
-function renderMe(){$('me').textContent=who?(who==='Fanie'?'💖 ':'💙 ')+who+' (changer)':'Qui es-tu ?'}
+function renderMe(){}
 async function rpc(fn,args){
   const r=await fetch(SB+fn,{method:'POST',headers:{apikey:SBK,'Content-Type':'application/json'},body:JSON.stringify(args)});
   const t=await r.text();let j=null;try{j=t?JSON.parse(t):null}catch(e){}
@@ -249,7 +261,7 @@ async function rpc(fn,args){
 }
 function setSync(ok){$('sync').textContent=ok?'':'📴 hors ligne — réessaie plus tard'}
 async function load(){
-  if(!code){askCode();return}
+  if(!code){if(!lsGet('fm-out'))askCode();return}
   try{
     const [rows,jrows]=await Promise.all([rpc('cal_list',{p:code}),rpc('cal_j_list',{p:code})]);store={};journal={};rdvAll=[];jAll=[];
     const kk=s=>{const [y,m,d]=s.split('-').map(Number);return y+'-'+m+'-'+d};
@@ -265,6 +277,8 @@ async function load(){
 }
 function askCode(msg){
   $('cmsg').textContent=msg||'Entre le code secret 💌';
+  document.querySelectorAll('#who button').forEach(x=>x.classList.toggle('sel',x.dataset.w===who));
+  $('ccode').value='';
   $('codeModal').classList.add('open');
 }
 document.querySelectorAll('#who button').forEach(b=>b.onclick=()=>{who=b.dataset.w;lsSet('fm-who',who);document.querySelectorAll('#who button').forEach(x=>x.classList.toggle('sel',x===b))});
@@ -273,9 +287,31 @@ $('cok').onclick=()=>{
   const v=$('ccode').value.trim()||code;
   if(!who){$('cmsg').textContent='Choisis qui tu es 💕';return}
   if(!v)return;
-  code=v;lsSet('fm-code',v);$('codeModal').classList.remove('open');renderMe();renderPic();load();
+  code=v;lsSet('fm-code',v);lsSet('fm-out','');$('codeModal').classList.remove('open');renderPic();load();
 };
-$('me').onclick=()=>askCode('Qui es-tu ? (le code est déjà enregistré)');
+/* Connexion / déconnexion : un clic sur une des deux photos en haut */
+function openAcc(){
+  const on=!!(code&&who);
+  $('accS').textContent=on?`Connecté en tant que ${who} ${who==='Fanie'?'💖':'💙'}`:"Tu n'es pas connecté.";
+  $('accLogin').style.display=on?'none':'';
+  $('accSwitch').style.display=on?'':'none';
+  $('accOut').style.display=on?'':'none';
+  $('accModal').classList.add('open');
+}
+document.querySelectorAll('.avb').forEach(b=>b.onclick=openAcc);
+$('accClose').onclick=()=>$('accModal').classList.remove('open');
+$('accModal').onclick=e=>{if(e.target===$('accModal'))$('accModal').classList.remove('open')};
+$('accLogin').onclick=()=>{$('accModal').classList.remove('open');askCode('Choisis qui tu es, puis entre le code 💌')};
+$('accSwitch').onclick=()=>{$('accModal').classList.remove('open');askCode('Choisis qui tu es 💕 (le code est déjà enregistré)')};
+$('accOut').onclick=()=>{
+  code='';who='';
+  ['fm-code','fm-who','fm-seen','fm-photo-src'].forEach(k=>lsSet(k,''));
+  try{Object.keys(localStorage).filter(k=>k.startsWith('fm-ph-')).forEach(k=>localStorage.removeItem(k))}catch(e){}
+  lsSet('fm-out','1');
+  store={};journal={};rdvAll=[];jAll=[];photos={};notified.clear();
+  $('accModal').classList.remove('open');$('modal').classList.remove('open');
+  setSync(true);renderPic();renderCal();
+};
 $('bell').onclick=async()=>{try{await Notification.requestPermission()}catch(e){}updateBell()};
 function updateBell(){$('bell').style.display=('Notification' in window&&Notification.permission==='default')?'':'none'}
 async function notify(title,body){
@@ -318,7 +354,7 @@ function curPhoto(){
   return own||oth||'';
 }
 function renderPic(){
-  const img=curPhoto();
+  const img=(code&&who)?curPhoto():'';
   // le cadre prend la forme de la photo ; rien n'est coupé, un fond flou comble les bords
   $('pic').innerHTML=img?`<img class="bg" alt="" src="${img}"><img class="fg" alt="Fanie et Michaël" src="${img}">`:COUPLE;
   if(!img){$('pic').style.aspectRatio='1.25';return}
@@ -341,6 +377,7 @@ function readImg(file,max,q){return new Promise(res=>{const r=new FileReader();r
   const s=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);
   c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',q))};im.src=r.result};r.readAsDataURL(file)})}
 $('addPhoto').onclick=()=>{
+  if(!code||!who){openAcc();return}
   const o=photos[other()];
   $('phOther').innerHTML=o?`<img alt="" src="${o}">💞 Récupérer la photo de ${esc(other())}`:`💞 ${esc(other())} n'a pas encore mis de photo`;
   $('phOther').disabled=!o;
@@ -505,6 +542,7 @@ $('nextm').onclick=()=>{vm++;if(vm>11){vm=0;vy++}renderCal()};
 let curN=null,jpending=null;const pcache={};
 ['🍽️','🎬','✈️','🎂','💌','🛒','🌹','🎉'].forEach(e=>{const b=document.createElement('button');b.textContent=e;b.onclick=()=>{$('mtxt').value=e+' '+$('mtxt').value.replace(/^\p{Extended_Pictographic}️?\s*/u,'');$('mtxt').focus()};$('emo').appendChild(b)});
 function openDay(n){
+  if(!code||!who){openAcc();return}
   curN=n;$('mdate').textContent=fmt(n);
   const [a,b]=dayState(n);
   $('mst').textContent=dow(n)===0&&a!==b?(b?'💖 Retrouvailles !':'🌙 À bientôt'):(b?'💖 Ensemble':'');
@@ -597,7 +635,7 @@ $('newsModal').onclick=e=>{if(e.target===$('newsModal'))closeNews()};
 /* Installation comme appli */
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
 
-renderMe();updateBell();renderPic();renderStatus();renderCal();load();
+updateBell();renderPic();renderStatus();renderCal();load();
 </script>
 </body>
 </html>
