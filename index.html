@@ -107,6 +107,14 @@ input[type=text]{flex:1;font:inherit;border:2px solid var(--rose2);border-radius
 .pk .gr button{background:none;font-size:22px;border-radius:8px;padding:2px 0}
 .pk .gr button:hover{background:var(--rose2)}
 #icb{background:#fff6fa;border:2px solid var(--rose2);border-radius:12px;font-size:20px;padding:0 9px}
+#nbell{background:#ffffffaa;border-radius:999px;font-size:15px;padding:2px 9px;position:relative;opacity:.85}
+#nbell:hover{opacity:1}
+#nbadge{position:absolute;top:-4px;right:-4px;background:#d9708f;color:#fff;border-radius:999px;font-size:10px;min-width:16px;height:16px;line-height:16px;text-align:center;padding:0 3px}
+#nbadge:empty{display:none}
+.nit{display:flex;align-items:center;gap:6px;background:#fff6fa;border-radius:12px;padding:6px 6px 6px 10px;margin-bottom:6px;font-weight:600;font-size:14px}
+.nit .go{flex:1;text-align:left;background:none;color:var(--ink);font:inherit}
+.nit .x{background:none;font-size:16px}
+#nlist{max-height:55vh;overflow:auto}
 #reactModal,#delModal{z-index:28}
 #delModal .box{text-align:center}
 #delModal .row{justify-content:center;margin-top:12px}
@@ -159,7 +167,7 @@ textarea{width:100%;font:inherit;border:2px solid var(--rose2);border-radius:12p
  </div>
  <p class="sub"><span class="bf">💖</span><span>Notre petit calendrier d'amour</span><span class="bf">💖</span></p>
 </header>
-<div id="bar"><button class="link" id="bell" style="display:none">🔔 Me prévenir</button><span id="sync"></span></div>
+<div id="bar"><button id="nbell" aria-label="Notifications" title="Notifications" style="display:none">🔔<b id="nbadge"></b></button><button class="link" id="bell" style="display:none">🔔 Me prévenir</button><span id="sync"></span></div>
 
 <div class="page">
  <div class="top">
@@ -247,6 +255,8 @@ textarea{width:100%;font:inherit;border:2px solid var(--rose2);border-radius:12p
 
 <div class="modal" id="delModal"><div class="box"><div style="font-size:38px">🗑️</div><h4>Supprimer ce message ?</h4><p id="delTxt" style="font-size:14px;opacity:.75;margin-top:4px"></p><div class="row"><button class="btn" id="delNo">Non, je le garde 💕</button><button class="btn" id="delOk">Oui, supprimer</button></div></div></div>
 
+<div class="modal" id="notifModal"><div class="box"><h4>Notifications 🔔</h4><div id="nlist"></div><div class="row" style="justify-content:space-between;margin-top:8px"><button class="btn" id="nclear">Tout effacer</button><button class="btn" id="nclose">Fermer</button></div></div></div>
+
 <div class="modal" id="newsModal">
  <div class="box">
   <h4>Du nouveau 💌</h4>
@@ -298,7 +308,7 @@ async function load(){
     rows.forEach(r=>{const k=kk(r.jour);(store[k]=store[k]||[]).push({id:r.id,t:r.texte,a:r.auteur});rdvAll.push({id:r.id,n:nn(r.jour),t:r.texte,a:r.auteur,c:Date.parse(r.created_at)})});
     jrows.forEach(r=>{const k=kk(r.jour);(journal[k]=journal[k]||[]).push({id:r.id,t:r.texte,a:r.auteur,p:r.has_photo});jAll.push({id:r.id,n:nn(r.jour),t:r.texte,a:r.auteur,c:Date.parse(r.created_at)})});
     setSync(true);renderCal();if($('modal').classList.contains('open')){renderList();renderJournal()}
-    checkNew();
+    checkNew();updateNBell();
     syncPhotos().catch(()=>{});
   }catch(e){
     if(/code/i.test(e.message)){code='';lsSet('fm-code','');askCode('Code incorrect, réessaie 💭')}else setSync(false);
@@ -339,7 +349,7 @@ $('accOut').onclick=()=>{
   lsSet('fm-out','1');
   store={};journal={};rdvAll=[];jAll=[];photos={};notified.clear();
   $('accModal').classList.remove('open');$('modal').classList.remove('open');
-  setSync(true);renderPic();renderCal();
+  setSync(true);renderPic();renderCal();updateNBell();
 };
 $('bell').onclick=async()=>{try{await Notification.requestPermission()}catch(e){}updateBell()};
 function updateBell(){$('bell').style.display=('Notification' in window&&Notification.permission==='default')?'':'none'}
@@ -709,6 +719,31 @@ function checkNew(){
   $('newsModal').classList.add('open');
   if(document.hidden)notify('Fanie & Michaël 💕',items[items.length-1].txt);
 }
+function dismissed(){try{return JSON.parse(lsGet('fm-dis')||'[]')}catch(e){return[]}}
+function allNotifs(){
+  if(!who)return[];const dis=new Set(dismissed());const lim=Date.now()-30*864e5;const items=[];
+  jAll.filter(e=>e.a&&e.a!==who&&e.c>lim).forEach(e=>items.push({k:'j'+e.id,n:e.n,c:e.c,tab:'J',txt:`📖 ${e.a} a écrit dans le journal (${fmt(e.n)})`}));
+  rdvAll.filter(e=>e.a&&e.a!==who&&e.c>lim).forEach(e=>items.push({k:'r'+e.id,n:e.n,c:e.c,tab:'R',txt:`📅 ${e.a} a ajouté « ${e.t} » (${fmt(e.n)})`}));
+  return items.filter(i=>!dis.has(i.k)).sort((a,b)=>b.c-a.c);
+}
+function updateNBell(){
+  $('nbell').style.display=who&&code?'':'none';
+  const n=allNotifs().length;$('nbadge').textContent=n?String(n):'';
+}
+function renderNotifs(){
+  const l=allNotifs();
+  $('nlist').innerHTML=l.length?l.map(i=>`<div class="nit"><button class="go" data-k="${i.k}">${esc(i.txt)}</button><button class="x" data-k="${i.k}" aria-label="Effacer">🗑️</button></div>`).join(''):'<div class="nit" style="opacity:.6">Rien de nouveau 💭</div>';
+  $('nlist').querySelectorAll('.x').forEach(b=>b.onclick=()=>{lsSet('fm-dis',JSON.stringify(dismissed().concat(b.dataset.k)));renderNotifs();updateNBell()});
+  $('nlist').querySelectorAll('.go').forEach(b=>b.onclick=()=>{
+    const it=l.find(i=>i.k===b.dataset.k);$('notifModal').classList.remove('open');
+    const d=toDate(it.n);vy=d.getUTCFullYear();vm=d.getUTCMonth();renderCal();openDay(it.n);if(it.tab==='J')showTab('J');
+  });
+  $('nclear').style.visibility=l.length?'':'hidden';
+}
+$('nbell').onclick=()=>{renderNotifs();$('notifModal').classList.add('open')};
+$('nclose').onclick=()=>$('notifModal').classList.remove('open');
+$('notifModal').onclick=e=>{if(e.target===$('notifModal'))$('notifModal').classList.remove('open')};
+$('nclear').onclick=()=>{lsSet('fm-dis',JSON.stringify(dismissed().concat(allNotifs().map(i=>i.k))));renderNotifs();updateNBell()};
 function closeNews(){
   $('newsModal').classList.remove('open');
   if(shownMax)lsSet('fm-seen',new Date(shownMax).toISOString());
