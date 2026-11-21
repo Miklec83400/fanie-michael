@@ -399,6 +399,13 @@ function renderPic(){
   if(!img){$('pic').style.aspectRatio='1.25';return}
   const im=new Image();im.onload=()=>{$('pic').style.aspectRatio=Math.min(1.8,Math.max(1,im.width/im.height))};im.src=img;
 }
+$('pic').style.cursor='pointer';$('pic').title='Touche pour changer de photo';
+$('pic').onclick=()=>{
+  if(!code||!who)return;
+  const own=photos[who]||lsGet('fm-photo'),oth=photos[other()];
+  if(!own||!oth)return;
+  lsSet('fm-photo-src',curPhoto()===oth?'own':'other');renderPic();
+};
 async function syncPhotos(){
   if(!code||!who)return;
   const info=await rpc('cal_photo_info',{p:code});
