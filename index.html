@@ -107,6 +107,9 @@ input[type=text]{flex:1;font:inherit;border:2px solid var(--rose2);border-radius
 .pk .gr button{background:none;font-size:22px;border-radius:8px;padding:2px 0}
 .pk .gr button:hover{background:var(--rose2)}
 #icb{background:#fff6fa;border:2px solid var(--rose2);border-radius:12px;font-size:20px;padding:0 9px}
+#edModal{z-index:28}
+#edModal textarea{width:100%;margin-top:6px;font:inherit;border:2px solid var(--rose2);border-radius:12px;padding:7px 10px;outline:none}
+.ed{background:none;font-size:14px;opacity:.75}
 #nbell{background:#ffffffaa;border-radius:999px;font-size:15px;padding:2px 9px;position:relative;opacity:.85}
 #nbell:hover{opacity:1}
 #nbadge{position:absolute;top:-4px;right:-4px;background:#d9708f;color:#fff;border-radius:999px;font-size:10px;min-width:16px;height:16px;line-height:16px;text-align:center;padding:0 3px}
@@ -252,6 +255,8 @@ textarea{width:100%;font:inherit;border:2px solid var(--rose2);border-radius:12p
  </div>
 </div>
 <div class="modal" id="reactModal"><div class="box"><h4>Ta réaction 💕</h4><div class="pk" id="rxpick"></div><div style="text-align:right"><button class="btn" id="rxclose">Fermer</button></div></div></div>
+
+<div class="modal" id="edModal"><div class="box"><h4>Modifier ✏️</h4><textarea id="edTxt" rows="3"></textarea><div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn" id="edNo">Annuler</button><button class="btn" id="edOk">Enregistrer 💕</button></div></div></div>
 
 <div class="modal" id="delModal"><div class="box"><div style="font-size:38px">🗑️</div><h4>Supprimer ce message ?</h4><p id="delTxt" style="font-size:14px;opacity:.75;margin-top:4px"></p><div class="row"><button class="btn" id="delNo">Non, je le garde 💕</button><button class="btn" id="delOk">Oui, supprimer</button></div></div></div>
 
@@ -601,7 +606,14 @@ const REACTS={
 '🌸 Kawaii':'🐱 🐶 🐰 🐻 🐼 🐨 🐹 🐥 🐣 🦆 🦄 🦋 🐝 🐞 🐢 🐙 🦊 🐑 🐷 🐸 🐧 🦭 🍓 🍒 🍑 🍡 🍙 🍥 🧁 🍰 🍭 🍬 🍩 🧋 🌸 🌼 🍀 ☁️ 🌈 ⭐ 🎀 🫧 🧸 🪁 🎈 🍃 🪷',
 '⚔️ Fantasy':'⚔️ 🗡️ 🛡️ 🏹 🪄 🔮 📜 🧙 🧙‍♀️ 🧝 🧝‍♀️ 🧚 🧚‍♀️ 🧜‍♀️ 🧛 🧞 👼 😇 😈 👿 🐉 🐲 🦄 🦅 🦉 🐺 🦌 🐦‍🔥 👑 💎 🪙 🗝️ 🏰 ⛰️ 🔥 ⚡ ❄️ 🌪️ 🌊 🌙 ☀️ ⭐ 💫 ☄️ 🪽 🧿 💀 🪐 ✨ 🌟',
 '🍌 Rigolo':'🍌 🟡 💛 🥽 😜 🤪 😝 😆 😂 🤣 🥴 🤡 👁️ 🙈 🙉 🙊 🐒 🦍 🎈 🎉 🥳 🎂 🍦 🍕 🍔 🍺 🍻 🧃 🤸 💃 🕺 🪩 🎸 🎤 🚀 🛸 👽 🤖 🦖 🐥 🌈 💥 💫 🤯 😵‍💫 🫨 😬 😳 🤭',
-'🎮 Gaming':'🎮 🕹️ 👾 🏆 🥇 🎯 🎲 🧩 ♟️ 🃏 🤖 👑 💎 ⭐ 🌟 💥 🔥 ⚡ 💯 🚀 🛡️ ⚔️ 💀 ☠️ 🧟 👻 🎃 🪙 💰 🍄 🧪 🗡️ 🏹 🧙 🐲 🦄 🔮 🥷 🏰 🪄 ✨ 📈 🎊 🎉 💪 🫡 🤝'
+'🎮 Gaming':'🎮 🕹️ 👾 🏆 🥇 🎯 🎲 🧩 ♟️ 🃏 🤖 👑 💎 ⭐ 🌟 💥 🔥 ⚡ 💯 🚀 🛡️ ⚔️ 💀 ☠️ 🧟 👻 🎃 🪙 💰 🍄 🧪 🗡️ 🏹 🧙 🐲 🦄 🔮 🥷 🏰 🪄 ✨ 📈 🎊 🎉 💪 🫡 🤝',
+'🎄 Noël':'🎄 🎅 🤶 🧑‍🎄 🦌 🛷 ⛄ ☃️ ❄️ 🌨️ 🎁 🎀 🔔 🕯️ 🌟 ⭐ ✨ 🧦 🍪 🥛 🍫 🍬 🍭 🥮 🍷 🥂 🧣 🧤 🧸 🪵 🔥 🏠 ⛪ 👼 🕊️ 🤍 ❤️ 💚 💖 🧝 🧝‍♀️ 🎶 🎵 🍽️ 🦃 🥧 🍗 🫶 😇 🤗',
+'🥂 Nouvel An':'🥂 🍾 🎆 🎇 🧨 🎉 🎊 🥳 🪩 🎈 🕛 ⏰ 🕰️ 🔔 ✨ 🌟 ⭐ 💫 🎶 🎵 🕺 💃 🎩 🎭 🍀 🌈 🎯 🥇 🏆 📅 🗓️ 🎁 🍰 🍾 🍷 🍸 🍹 🥘 🥗 🦪 🍫 💋 💖 💕 🫶 🙏 🔮 🧿 😎 🤩 🥰',
+'🐣 Pâques':'🐣 🐥 🐤 🐰 🐇 🥚 🌷 🌸 🌼 🌻 🌱 🌿 🍀 🦋 🐝 🐞 🐑 🐏 🐓 🐔 🧺 🍫 🍬 🍭 🧁 🍰 🥕 🍓 🌈 ☀️ 🌤️ 🌸 🎀 🎈 💐 🪺 🪹 🕊️ ⛪ 🔔 ✝️ 💛 💚 💗 💜 🩷 😊 🥰 🤗',
+'💘 Saint-Valentin':'💘 💝 💖 💗 💓 💕 💞 💌 💋 🌹 🥀 🌷 💐 🍫 🍷 🥂 🍓 🍒 🍰 🧁 🎀 🧸 💍 💎 💑 👩‍❤️‍👨 💏 😍 🥰 😘 😻 🫶 🫰 🏹 😇 👼 🕯️ 🌙 ⭐ 🌠 🛁 🍽️ 🎁 📜 🦢 🕊️ ❤️‍🔥 ❤️ 🩷 💟',
+'🎃 Halloween':'🎃 👻 🦇 🕷️ 🕸️ 💀 ☠️ 🧛 🧛‍♀️ 🧟 🧙 🧙‍♀️ 🧞 🧚 🐈‍⬛ 🍬 🍭 🍫 🍎 🕯️ 🌕 🌙 ⚰️ 🪦 🔮 🧿 👹 👺 🤡 😈 👿 🍂 🍁 🌾 🐺 🦉 🪄 🧪 🍄 🥀 😱 🫣 🤭',
+'🎂 Anniv':'🎂 🍰 🧁 🎈 🎁 🎀 🥳 🎉 🎊 🪅 🪩 🕯️ 🍾 🥂 🍷 🍹 🍩 🍪 🍫 🍭 🍬 🎵 🎶 🎤 🎸 💃 🕺 📸 💌 🌹 💐 🌸 ⭐ 🌟 ✨ 💫 🎖️ 🏆 👑 🤗 🫶 😍 🥰 😘 💖 💕 💝',
+'☀️ Été':'☀️ 🌞 🌴 🏖️ 🏝️ 🌊 🐚 🐬 🐠 🦀 ⛱️ 🕶️ 👙 🩴 🍉 🍦 🍨 🧊 🍹 🍍 🥥 🍋 🍓 🌻 🌅 🌇 🌈 ⛵ 🏄 🏊 🤿 🚲 🏕️ ⛺ 🔥 🍢 🍺 🎣 🪁 🛶 🌙 ⭐ 🦋 🐝 🌿 😎 😊 🥰'
 };
 const split=o=>Object.entries(o).map(([k,v])=>[k,v.split(' ')]);
 function buildPicker(el,themes,onPick,startTab){
@@ -626,7 +638,11 @@ function rxHTML(kind,id){
 async function toggleReact(k,i,e){
   try{await rpc('cal_react_toggle',{p:code,k:k,i:+i,e:e,a:who});await load()}catch(x){setSync(false)}
 }
-let rxTarget=null,delFn=null;
+let rxTarget=null,delFn=null,edFn=null;
+function askEdit(txt,max,fn){edFn=fn;$('edTxt').value=txt;$('edTxt').maxLength=max;$('edModal').classList.add('open');setTimeout(()=>$('edTxt').focus(),50)}
+$('edNo').onclick=()=>$('edModal').classList.remove('open');
+$('edModal').onclick=e=>{if(e.target===$('edModal'))$('edModal').classList.remove('open')};
+$('edOk').onclick=async()=>{const v=$('edTxt').value.trim();$('edModal').classList.remove('open');if(edFn)await edFn(v)};
 function askDel(txt,fn){delFn=fn;$('delTxt').textContent=txt;$('delModal').classList.add('open')}
 $('delNo').onclick=()=>$('delModal').classList.remove('open');
 $('delModal').onclick=e=>{if(e.target===$('delModal'))$('delModal').classList.remove('open')};
@@ -655,8 +671,8 @@ function openDay(n){
 }
 function renderList(){
   const l=store[key(curN)]||[];
-  $('mlist').innerHTML=l.length?l.map(e=>`<li><div class="top"><span>${esc(e.t)}${e.a?` <small style="opacity:.55">· ${esc(e.a)}</small>`:''}</span><button data-id="${e.id}" aria-label="Supprimer">🗑️</button></div>${rxHTML('rdv',e.id)}</li>`).join(''):'<li style="opacity:.6">Rien de prévu pour l\'instant 💭</li>';
-  wireReacts($('mlist'));$('mlist').querySelectorAll('button[data-id]').forEach(b=>b.onclick=()=>askDel('Ce rendez-vous sera effacé pour vous deux.',async()=>{try{await rpc('cal_del',{p:code,i:+b.dataset.id});await load()}catch(e){setSync(false)}}));
+  $('mlist').innerHTML=l.length?l.map(e=>`<li><div class="top"><span>${esc(e.t)}${e.a?` <small style="opacity:.55">· ${esc(e.a)}</small>`:''}</span><span>${e.a===who?`<button class="ed" data-ed="${e.id}" aria-label="Modifier">✏️</button>`:''}<button data-id="${e.id}" aria-label="Supprimer">🗑️</button></span></div>${rxHTML('rdv',e.id)}</li>`).join(''):'<li style="opacity:.6">Rien de prévu pour l\'instant 💭</li>';
+  wireReacts($('mlist'));$('mlist').querySelectorAll('button[data-ed]').forEach(b=>b.onclick=()=>{const it=l.find(x=>x.id==b.dataset.ed);askEdit(it.t,80,async v=>{if(!v)return;try{await rpc('cal_upd',{p:code,i:+b.dataset.ed,t:v,a:who});await load()}catch(e){setSync(false)}})});$('mlist').querySelectorAll('button[data-id]').forEach(b=>b.onclick=()=>askDel('Ce rendez-vous sera effacé pour vous deux.',async()=>{try{await rpc('cal_del',{p:code,i:+b.dataset.id});await load()}catch(e){setSync(false)}}));
 }
 async function addEv(){
   const t0=$('mtxt').value.trim();if(!t0&&!curIcon)return;const t=((curIcon?curIcon+' ':'')+t0).trim().slice(0,80);
@@ -677,8 +693,8 @@ function renderJournal(){
   if(curN===null)return;
   const jl=journal[key(curN)]||[];
   $('tabJ').textContent='📖 Journal'+(jl.length?` (${jl.length})`:'');
-  $('jlist').innerHTML=jl.length?jl.map(e=>`<div class="je"><small><span>${esc(e.a||'')}</span><button data-id="${e.id}" aria-label="Supprimer">🗑️</button></small>${e.t?`<p>${esc(e.t)}</p>`:''}${e.p?`<img data-id="${e.id}" alt="">`:''}${rxHTML('journal',e.id)}</div>`).join(''):'<div class="je" style="opacity:.6">Pas encore de souvenir ce jour-là 💭</div>';
-  wireReacts($('jlist'));$('jlist').querySelectorAll('button[data-id]').forEach(b=>b.onclick=()=>askDel('Ce souvenir sera effacé pour vous deux.',async()=>{try{await rpc('cal_j_del',{p:code,i:+b.dataset.id});await load()}catch(e){setSync(false)}}));
+  $('jlist').innerHTML=jl.length?jl.map(e=>`<div class="je"><small><span>${esc(e.a||'')}</span><span>${e.a===who?`<button class="ed" data-ed="${e.id}" aria-label="Modifier">✏️</button>`:''}<button data-id="${e.id}" aria-label="Supprimer">🗑️</button></span></small>${e.t?`<p>${esc(e.t)}</p>`:''}${e.p?`<img data-id="${e.id}" alt="">`:''}${rxHTML('journal',e.id)}</div>`).join(''):'<div class="je" style="opacity:.6">Pas encore de souvenir ce jour-là 💭</div>';
+  wireReacts($('jlist'));$('jlist').querySelectorAll('button[data-ed]').forEach(b=>b.onclick=()=>{const it=jl.find(x=>x.id==b.dataset.ed);askEdit(it.t||'',1000,async v=>{if(!v&&!it.p)return;try{await rpc('cal_j_upd',{p:code,i:+b.dataset.ed,t:v,a:who});await load()}catch(e){setSync(false)}})});$('jlist').querySelectorAll('button[data-id]').forEach(b=>b.onclick=()=>askDel('Ce souvenir sera effacé pour vous deux.',async()=>{try{await rpc('cal_j_del',{p:code,i:+b.dataset.id});await load()}catch(e){setSync(false)}}));
   $('jlist').querySelectorAll('img').forEach(async im=>{
     const id=+im.dataset.id;
     try{if(!pcache[id])pcache[id]=await rpc('cal_j_photo',{p:code,i:id});im.src=pcache[id]}catch(e){}
